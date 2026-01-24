@@ -1,0 +1,731 @@
+{
+  "working_paths": {
+    "organism": "replicates.library.biosample.donor.organism.scientific_name",
+    "life_stage": "replicates.library.biosample.life_stage",
+    "target": "target.label"
+  },
+  "life_stages": [
+    {
+      "key": "embryonic",
+      "count": 5026,
+      "error": "",
+      "path": "replicates.library.biosample.life_stage"
+    },
+    {
+      "key": "postnatal",
+      "count": 739,
+      "error": "",
+      "path": "replicates.library.biosample.life_stage"
+    },
+    {
+      "key": "adult",
+      "count": 14251,
+      "error": "",
+      "path": "replicates.library.biosample.life_stage"
+    },
+    {
+      "key": "unknown",
+      "count": 2630,
+      "error": "",
+      "path": "replicates.library.biosample.life_stage"
+    },
+    {
+      "key": "child",
+      "count": 2463,
+      "error": "",
+      "path": "replicates.library.biosample.life_stage"
+    },
+    {
+      "key": "newborn",
+      "count": 369,
+      "error": "",
+      "path": "replicates.library.biosample.life_stage"
+    }
+  ],
+  "targets": [
+    {
+      "key": "H3K27ac",
+      "count": 757,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H3K4me3",
+      "count": 854,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H3K4me1",
+      "count": 691,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H3K27me3",
+      "count": 718,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H3K9me3",
+      "count": 643,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H3K36me3",
+      "count": 672,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H3K9ac",
+      "count": 203,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H4K20me1",
+      "count": 54,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "H3K79me2",
+      "count": 56,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "CTCF",
+      "count": 608,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "POLR2A",
+      "count": 225,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "EP300",
+      "count": 97,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "RAD21",
+      "count": 83,
+      "error": "",
+      "path": "target.label"
+    },
+    {
+      "key": "SMC3",
+      "count": 22,
+      "error": "",
+      "path": "target.label"
+    }
+  ],
+  "biosamples": [
+    {
+      "key": "K562",
+      "count": 2571,
+      "error": ""
+    },
+    {
+      "key": "GM12878",
+      "count": 490,
+      "error": ""
+    },
+    {
+      "key": "H1-hESC",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&biosample_ontology.term_name=H1-hESC"
+    },
+    {
+      "key": "A549",
+      "count": 538,
+      "error": ""
+    },
+    {
+      "key": "HeLa-S3",
+      "count": 159,
+      "error": ""
+    },
+    {
+      "key": "HepG2",
+      "count": 1793,
+      "error": ""
+    },
+    {
+      "key": "HUVEC",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&biosample_ontology.term_name=HUVEC"
+    },
+    {
+      "key": "IMR-90",
+      "count": 114,
+      "error": ""
+    },
+    {
+      "key": "MCF-7",
+      "count": 356,
+      "error": ""
+    },
+    {
+      "key": "SK-N-SH",
+      "count": 196,
+      "error": ""
+    },
+    {
+      "key": "liver",
+      "count": 286,
+      "error": ""
+    },
+    {
+      "key": "heart",
+      "count": 328,
+      "error": ""
+    },
+    {
+      "key": "kidney",
+      "count": 156,
+      "error": ""
+    },
+    {
+      "key": "lung",
+      "count": 165,
+      "error": ""
+    },
+    {
+      "key": "brain",
+      "count": 127,
+      "error": ""
+    },
+    {
+      "key": "spleen",
+      "count": 196,
+      "error": ""
+    },
+    {
+      "key": "thymus",
+      "count": 66,
+      "error": ""
+    },
+    {
+      "key": "cerebellum",
+      "count": 111,
+      "error": ""
+    },
+    {
+      "key": "hippocampus",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&biosample_ontology.term_name=hippocampus"
+    },
+    {
+      "key": "cortex",
+      "count": 2,
+      "error": ""
+    },
+    {
+      "key": "whole blood",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&biosample_ontology.term_name=whole+blood"
+    },
+    {
+      "key": "HEK293",
+      "count": 291,
+      "error": ""
+    },
+    {
+      "key": "Jurkat",
+      "count": 7,
+      "error": ""
+    },
+    {
+      "key": "NHEK",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&biosample_ontology.term_name=NHEK"
+    },
+    {
+      "key": "Caco-2",
+      "count": 44,
+      "error": ""
+    },
+    {
+      "key": "U2OS",
+      "count": 8,
+      "error": ""
+    },
+    {
+      "key": "PC-3",
+      "count": 33,
+      "error": ""
+    },
+    {
+      "key": "LNCaP",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&biosample_ontology.term_name=LNCaP"
+    }
+  ],
+  "assays": [
+    {
+      "key": "ATAC-seq",
+      "display": "ATAC-seq (Chromatin Accessibility)",
+      "count": 560,
+      "error": ""
+    },
+    {
+      "key": "DNase-seq",
+      "display": "DNase-seq (Chromatin Accessibility)",
+      "count": 3582,
+      "error": ""
+    },
+    {
+      "key": "FAIRE-seq",
+      "display": "FAIRE-seq (Chromatin Accessibility)",
+      "count": 37,
+      "error": ""
+    },
+    {
+      "key": "MNase-seq",
+      "display": "MNase-seq (Nucleosome Mapping)",
+      "count": 2,
+      "error": ""
+    },
+    {
+      "key": "ChIP-seq",
+      "display": "ChIP-seq (Chromatin Immunoprecipitation)",
+      "count": 12569,
+      "error": ""
+    },
+    {
+      "key": "CUT&RUN",
+      "display": "CUT&RUN (Chromatin Profiling)",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=CUT%26RUN"
+    },
+    {
+      "key": "CUT&Tag",
+      "display": "CUT&Tag (Chromatin Profiling)",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=CUT%26Tag"
+    },
+    {
+      "key": "Mint-ChIP-seq",
+      "display": "Mint-ChIP-seq (Low-input ChIP)",
+      "count": 1162,
+      "error": ""
+    },
+    {
+      "key": "HiC",
+      "display": "HiC (Chromatin Conformation)",
+      "count": 501,
+      "error": ""
+    },
+    {
+      "key": "capture Hi-C",
+      "display": "capture Hi-C (Promoter Contacts)",
+      "count": 2,
+      "error": ""
+    },
+    {
+      "key": "ChIA-PET",
+      "display": "ChIA-PET (Chromatin Interaction)",
+      "count": 213,
+      "error": ""
+    },
+    {
+      "key": "PLAC-seq",
+      "display": "PLAC-seq (Promoter-Enhancer Contacts)",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=PLAC-seq"
+    },
+    {
+      "key": "5C",
+      "display": "5C (Chromatin Conformation)",
+      "count": 13,
+      "error": ""
+    },
+    {
+      "key": "4C",
+      "display": "4C (Chromatin Conformation)",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=4C"
+    },
+    {
+      "key": "genotype phasing by HiC",
+      "display": "genotype phasing by HiC",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=genotype+phasing+by+HiC"
+    },
+    {
+      "key": "SPRITE",
+      "display": "SPRITE (3D Chromatin)",
+      "count": 3,
+      "error": ""
+    },
+    {
+      "key": "SPRITE-IP",
+      "display": "SPRITE-IP (3D Chromatin)",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=SPRITE-IP"
+    },
+    {
+      "key": "RNA-seq",
+      "display": "RNA-seq (Transcriptome)",
+      "count": 1270,
+      "error": ""
+    },
+    {
+      "key": "polyA plus RNA-seq",
+      "display": "polyA plus RNA-seq (mRNA)",
+      "count": 943,
+      "error": ""
+    },
+    {
+      "key": "polyA minus RNA-seq",
+      "display": "polyA minus RNA-seq (Non-polyA)",
+      "count": 32,
+      "error": ""
+    },
+    {
+      "key": "small RNA-seq",
+      "display": "small RNA-seq (Small RNAs)",
+      "count": 216,
+      "error": ""
+    },
+    {
+      "key": "microRNA-seq",
+      "display": "microRNA-seq (miRNAs)",
+      "count": 418,
+      "error": ""
+    },
+    {
+      "key": "long read RNA-seq",
+      "display": "long read RNA-seq (Isoform)",
+      "count": 203,
+      "error": ""
+    },
+    {
+      "key": "long read single-cell RNA-seq",
+      "display": "long read single-cell RNA-seq",
+      "count": 64,
+      "error": ""
+    },
+    {
+      "key": "direct RNA-seq",
+      "display": "direct RNA-seq",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=direct+RNA-seq"
+    },
+    {
+      "key": "CAGE",
+      "display": "CAGE (TSS Mapping)",
+      "count": 121,
+      "error": ""
+    },
+    {
+      "key": "RAMPAGE",
+      "display": "RAMPAGE (TSS Mapping)",
+      "count": 168,
+      "error": ""
+    },
+    {
+      "key": "RNA-PET",
+      "display": "RNA-PET (Transcript Boundaries)",
+      "count": 31,
+      "error": ""
+    },
+    {
+      "key": "PRO-seq",
+      "display": "PRO-seq (Nascent Transcription)",
+      "count": 22,
+      "error": ""
+    },
+    {
+      "key": "PRO-cap",
+      "display": "PRO-cap (Nascent Transcription)",
+      "count": 224,
+      "error": ""
+    },
+    {
+      "key": "GRO-seq",
+      "display": "GRO-seq (Nascent Transcription)",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=GRO-seq"
+    },
+    {
+      "key": "GRO-cap",
+      "display": "GRO-cap (Nascent Transcription)",
+      "count": 4,
+      "error": ""
+    },
+    {
+      "key": "Bru-seq",
+      "display": "Bru-seq (Nascent Transcription)",
+      "count": 49,
+      "error": ""
+    },
+    {
+      "key": "BruChase-seq",
+      "display": "BruChase-seq (Nascent Transcription)",
+      "count": 32,
+      "error": ""
+    },
+    {
+      "key": "BruUV-seq",
+      "display": "BruUV-seq (Nascent Transcription)",
+      "count": 16,
+      "error": ""
+    },
+    {
+      "key": "single-cell RNA sequencing assay",
+      "display": "scRNA-seq (Single-Cell Transcriptome)",
+      "count": 524,
+      "error": ""
+    },
+    {
+      "key": "single-nucleus ATAC-seq",
+      "display": "snATAC-seq (Single-Nucleus Accessibility)",
+      "count": 370,
+      "error": ""
+    },
+    {
+      "key": "whole-genome shotgun bisulfite sequencing",
+      "display": "WGBS (Whole-Genome Bisulfite)",
+      "count": 278,
+      "error": ""
+    },
+    {
+      "key": "RRBS",
+      "display": "RRBS (Reduced Representation Bisulfite)",
+      "count": 218,
+      "error": ""
+    },
+    {
+      "key": "MeDIP-seq",
+      "display": "MeDIP-seq (Methylation)",
+      "count": 55,
+      "error": ""
+    },
+    {
+      "key": "TAB-seq",
+      "display": "TAB-seq (5hmC Mapping)",
+      "count": 8,
+      "error": ""
+    },
+    {
+      "key": "eCLIP",
+      "display": "eCLIP (RNA-Protein Binding)",
+      "count": 587,
+      "error": ""
+    },
+    {
+      "key": "iCLIP",
+      "display": "iCLIP (RNA-Protein Binding)",
+      "count": 7,
+      "error": ""
+    },
+    {
+      "key": "RIP-seq",
+      "display": "RIP-seq (RNA-Protein Binding)",
+      "count": 73,
+      "error": ""
+    },
+    {
+      "key": "RIP-chip",
+      "display": "RIP-chip (RNA-Protein Binding)",
+      "count": 32,
+      "error": ""
+    },
+    {
+      "key": "RNA Bind-n-Seq",
+      "display": "RNA Bind-n-Seq",
+      "count": 216,
+      "error": ""
+    },
+    {
+      "key": "icLASER",
+      "display": "icLASER (RNA Structure)",
+      "count": 2,
+      "error": ""
+    },
+    {
+      "key": "icSHAPE",
+      "display": "icSHAPE (RNA Structure)",
+      "count": 6,
+      "error": ""
+    },
+    {
+      "key": "Ribo-seq",
+      "display": "Ribo-seq (Translation)",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=Ribo-seq"
+    },
+    {
+      "key": "Repli-seq",
+      "display": "Repli-seq (Replication Timing)",
+      "count": 119,
+      "error": ""
+    },
+    {
+      "key": "Repli-chip",
+      "display": "Repli-chip (Replication Timing)",
+      "count": 63,
+      "error": ""
+    },
+    {
+      "key": "genetic modification followed by DNase-seq",
+      "display": "CRISPR-DNase",
+      "count": 46,
+      "error": ""
+    },
+    {
+      "key": "CRISPR genome editing followed by RNA-seq",
+      "display": "CRISPR followed by RNA-seq",
+      "count": 470,
+      "error": ""
+    },
+    {
+      "key": "CRISPRi followed by RNA-seq",
+      "display": "CRISPRi followed by RNA-seq",
+      "count": 77,
+      "error": ""
+    },
+    {
+      "key": "shRNA knockdown followed by RNA-seq",
+      "display": "shRNA knockdown RNA-seq",
+      "count": 668,
+      "error": ""
+    },
+    {
+      "key": "siRNA knockdown followed by RNA-seq",
+      "display": "siRNA knockdown RNA-seq",
+      "count": 113,
+      "error": ""
+    },
+    {
+      "key": "genomic perturbation followed by RT-qPCR",
+      "display": "Perturbation RT-qPCR",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=genomic+perturbation+followed+by+RT-qPCR"
+    },
+    {
+      "key": "seqFISH",
+      "display": "seqFISH (Spatial Transcriptomics)",
+      "count": 5,
+      "error": ""
+    },
+    {
+      "key": "PAS-seq",
+      "display": "PAS-seq (PolyA Site)",
+      "count": 54,
+      "error": ""
+    },
+    {
+      "key": "microRNA counts",
+      "display": "microRNA counts",
+      "count": 115,
+      "error": ""
+    },
+    {
+      "key": "Switchgear",
+      "display": "Switchgear",
+      "count": 2,
+      "error": ""
+    },
+    {
+      "key": "Circulome-seq",
+      "display": "Circulome-seq",
+      "count": 1,
+      "error": ""
+    },
+    {
+      "key": "Clone-seq",
+      "display": "Clone-seq",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=Clone-seq"
+    },
+    {
+      "key": "DNA-PET",
+      "display": "DNA-PET",
+      "count": 6,
+      "error": ""
+    },
+    {
+      "key": "MRE-seq",
+      "display": "MRE-seq (Methylation)",
+      "count": 68,
+      "error": ""
+    },
+    {
+      "key": "3' RACE",
+      "display": "3' RACE",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=3%27+RACE"
+    },
+    {
+      "key": "5' RACE",
+      "display": "5' RACE",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=5%27+RACE"
+    },
+    {
+      "key": "5' RLM RACE",
+      "display": "5' RLM RACE",
+      "count": 2,
+      "error": ""
+    },
+    {
+      "key": "comparative genomic hybridization by array",
+      "display": "CGH Array",
+      "count": 142,
+      "error": ""
+    },
+    {
+      "key": "DNA methylation profiling by array assay",
+      "display": "Methylation Array",
+      "count": 257,
+      "error": ""
+    },
+    {
+      "key": "transcription profiling by array assay",
+      "display": "Expression Array",
+      "count": 291,
+      "error": ""
+    },
+    {
+      "key": "protein sequencing by tandem mass spectrometry assay",
+      "display": "MS/MS Proteomics",
+      "count": 14,
+      "error": ""
+    },
+    {
+      "key": "LC/MS label-free quantitative proteomics",
+      "display": "LC/MS Proteomics",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=LC%2FMS+label-free+quantitative+proteomics"
+    },
+    {
+      "key": "LC-MS/MS isobaric label quantitative proteomics",
+      "display": "LC-MS/MS Proteomics",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=LC-MS%2FMS+isobaric+label+quantitative+proteomics"
+    },
+    {
+      "key": "whole genome sequencing assay",
+      "display": "WGS (Whole Genome Sequencing)",
+      "count": 52,
+      "error": ""
+    },
+    {
+      "key": "genotyping by high throughput sequencing assay",
+      "display": "Genotyping",
+      "count": -1,
+      "error": "404 Client Error: Not Found for url: https://www.encodeproject.org/search/?type=Experiment&format=json&limit=0&assay_term_name=genotyping+by+high+throughput+sequencing+assay"
+    }
+  ]
+}

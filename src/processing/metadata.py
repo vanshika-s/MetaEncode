@@ -10,6 +10,8 @@ from typing import Any, Optional
 
 import pandas as pd
 
+from src.ui.vocabularies import get_primary_organ_for_biosample
+
 
 class MetadataProcessor:
     """Process and clean ENCODE experiment metadata.
@@ -32,6 +34,7 @@ class MetadataProcessor:
         "organism",
         "biosample_term_name",
         "lab",
+        "life_stage",
     ]
     NUMERIC_FIELDS = ["replicate_count", "file_count"]
 
@@ -101,6 +104,20 @@ class MetadataProcessor:
             # Fill combined_text if it exists
             if "combined_text" in result.columns:
                 result["combined_text"] = result["combined_text"].fillna("")
+
+        # Add organ column derived from biosample_term_name
+        if "biosample_term_name" in result.columns:
+            result["organ"] = (
+                result["biosample_term_name"]
+                .apply(
+                    lambda x: (
+                        get_primary_organ_for_biosample(x)
+                        if pd.notna(x) and x != "unknown"
+                        else None
+                    )
+                )
+                .fillna("unknown")
+            )
 
         return result
 

@@ -211,6 +211,51 @@ class TestFetchExperimentsFilters:
         call_url = mock_get.call_args[0][0]
         assert "limit=all" in call_url
 
+    @patch("requests.Session.get")
+    def test_fetch_with_target_filter(self, mock_get):
+        """Line 124: target parameter adds target.label to URL."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"@graph": []}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        client = EncodeClient()
+        client.fetch_experiments(target="H3K27ac", limit=10)
+
+        # Verify URL contains the target.label parameter
+        call_url = mock_get.call_args[0][0]
+        assert "target.label=H3K27ac" in call_url
+
+    @patch("requests.Session.get")
+    def test_fetch_with_life_stage_filter(self, mock_get):
+        """Line 126: life_stage parameter adds nested path to URL."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"@graph": []}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        client = EncodeClient()
+        client.fetch_experiments(life_stage="adult", limit=10)
+
+        # Verify URL contains the life_stage nested path
+        call_url = mock_get.call_args[0][0]
+        assert "replicates.library.biosample.life_stage=adult" in call_url
+
+    @patch("requests.Session.get")
+    def test_fetch_with_search_term_filter(self, mock_get):
+        """Line 128: search_term parameter adds searchTerm to URL."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"@graph": []}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        client = EncodeClient()
+        client.fetch_experiments(search_term="enhancer", limit=10)
+
+        # Verify URL contains the searchTerm parameter
+        call_url = mock_get.call_args[0][0]
+        assert "searchTerm=enhancer" in call_url
+
 
 # ============================================================================
 # _parse_experiment Edge Cases (Lines 228-280)

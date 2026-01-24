@@ -154,7 +154,13 @@ class PlotGenerator:
     """
 
     # Default columns for hover tooltips
-    DEFAULT_HOVER_COLS = ["accession", "description", "assay_term_name", "organism"]
+    DEFAULT_HOVER_COLS = [
+        "accession",
+        "description",
+        "assay_term_name",
+        "organism",
+        "organ",
+    ]
 
     def __init__(self, reduction_method: str = "umap") -> None:
         """Initialize the plot generator.

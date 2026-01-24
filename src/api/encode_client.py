@@ -82,14 +82,20 @@ class EncodeClient:
         assay_type: Optional[str] = None,
         organism: Optional[str] = None,
         biosample: Optional[str] = None,
+        target: Optional[str] = None,
+        life_stage: Optional[str] = None,
+        search_term: Optional[str] = None,
         limit: int = 100,
     ) -> pd.DataFrame:
         """Fetch experiment metadata from ENCODE API.
 
         Args:
-            assay_type: Filter by assay type (e.g., "ChIP-seq", "RNA-seq").
-            organism: Filter by organism (e.g., "human", "mouse").
-            biosample: Filter by biosample term name (e.g., "K562").
+            assay_type: Filter by assay type (e.g., "ChIP-seq", "RNA-seq", "HiC").
+            organism: Filter by organism (e.g., "Homo sapiens", "Mus musculus").
+            biosample: Filter by biosample term name (e.g., "K562", "cerebellum").
+            target: Filter by ChIP-seq target (e.g., "H3K27ac", "CTCF").
+            life_stage: Filter by life stage (e.g., "adult", "embryonic").
+            search_term: Free-text search term (e.g., "mouse cerebellum").
             limit: Maximum number of experiments to fetch (default 100, use 0 for all).
 
         Returns:
@@ -109,11 +115,17 @@ class EncodeClient:
         if assay_type:
             params["assay_term_name"] = assay_type
         if organism:
-            params[
-                "replicates.library.biosample.donor.organism.scientific_name"
-            ] = organism
+            params["replicates.library.biosample.donor.organism.scientific_name"] = (
+                organism
+            )
         if biosample:
             params["biosample_ontology.term_name"] = biosample
+        if target:
+            params["target.label"] = target
+        if life_stage:
+            params["replicates.library.biosample.life_stage"] = life_stage
+        if search_term:
+            params["searchTerm"] = search_term
         if limit > 0:
             params["limit"] = limit
         else:
@@ -284,6 +296,18 @@ class EncodeClient:
             elif isinstance(organism_top, str):
                 organism = organism_top
 
+        # Extract life_stage from replicates structure
+        # Path: replicates[0].library.biosample.life_stage
+        life_stage = ""
+        if replicates and isinstance(replicates, list) and len(replicates) > 0:
+            rep = replicates[0]
+            if isinstance(rep, dict):
+                library = rep.get("library", {})
+                if isinstance(library, dict):
+                    biosample = library.get("biosample", {})
+                    if isinstance(biosample, dict):
+                        life_stage = str(biosample.get("life_stage", "") or "")
+
         return {
             "accession": data.get("accession", ""),
             "description": data.get("description", ""),
@@ -291,6 +315,7 @@ class EncodeClient:
             "assay_term_name": data.get("assay_term_name", ""),
             "biosample_term_name": biosample_term_name,
             "organism": organism,
+            "life_stage": life_stage,
             "lab": lab,
             "status": data.get("status", ""),
             "replicate_count": len(replicates),

@@ -10,7 +10,12 @@ from typing import Any, Optional
 
 import pandas as pd
 
-from src.ui.vocabularies import get_primary_organ_for_biosample
+from src.ui.vocabularies import (
+    get_primary_body_system_for_biosample,
+    get_primary_cell_type_for_biosample,
+    get_primary_developmental_layer_for_biosample,
+    get_primary_organ_for_biosample,
+)
 
 
 class MetadataProcessor:
@@ -105,19 +110,33 @@ class MetadataProcessor:
             if "combined_text" in result.columns:
                 result["combined_text"] = result["combined_text"].fillna("")
 
-        # Add organ column derived from biosample_term_name
+        # Add slim columns derived from biosample_term_name
         if "biosample_term_name" in result.columns:
-            result["organ"] = (
-                result["biosample_term_name"]
-                .apply(
-                    lambda x: (
-                        get_primary_organ_for_biosample(x)
-                        if pd.notna(x) and x != "unknown"
-                        else None
+            # Helper to apply slim lookup with null handling
+            def _apply_slim_lookup(col_name: str, lookup_func):
+                result[col_name] = (
+                    result["biosample_term_name"]
+                    .apply(
+                        lambda x: (
+                            lookup_func(x) if pd.notna(x) and x != "unknown" else None
+                        )
                     )
+                    .fillna("unknown")
                 )
-                .fillna("unknown")
+
+            # Organ system (existing)
+            _apply_slim_lookup("organ", get_primary_organ_for_biosample)
+
+            # Cell type classification
+            _apply_slim_lookup("cell_type", get_primary_cell_type_for_biosample)
+
+            # Developmental/germ layer
+            _apply_slim_lookup(
+                "developmental_layer", get_primary_developmental_layer_for_biosample
             )
+
+            # Body system
+            _apply_slim_lookup("body_system", get_primary_body_system_for_biosample)
 
         return result
 

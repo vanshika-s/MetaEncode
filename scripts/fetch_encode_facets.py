@@ -56,6 +56,9 @@ def fetch_all_experiments_minimal() -> list[dict]:
         "assay_term_name",
         "biosample_ontology.term_name",
         "biosample_ontology.organ_slims",
+        "biosample_ontology.cell_slims",
+        "biosample_ontology.developmental_slims",
+        "biosample_ontology.system_slims",
         "target.label",
         "lab.title",
         "status",
@@ -190,19 +193,22 @@ def count_field_values(experiments: list[dict]) -> dict[str, Counter]:
     return counters
 
 
-def build_organ_to_biosamples(experiments: list[dict]) -> dict[str, Counter]:
-    """Build mapping of organ_slim -> biosample term_names with counts.
+def build_slim_to_biosamples(
+    experiments: list[dict], slim_field: str
+) -> dict[str, Counter]:
+    """Build mapping of slim_value -> biosample term_names with counts.
 
-    This uses ENCODE's organ_slims from biosample_ontology, which are
-    UBERON ontology-derived standardized organ classifications.
+    Generic function for all slim types (organ_slims, cell_slims,
+    developmental_slims, system_slims).
 
     Args:
         experiments: List of experiment records with biosample_ontology.
+        slim_field: The slim field name (e.g., "organ_slims", "cell_slims").
 
     Returns:
-        Dictionary mapping organ names to Counter of biosample term_names.
+        Dictionary mapping slim values to Counter of biosample term_names.
     """
-    organ_to_biosamples: dict[str, Counter] = defaultdict(Counter)
+    slim_to_biosamples: dict[str, Counter] = defaultdict(Counter)
 
     for exp in experiments:
         biosample_onto = exp.get("biosample_ontology", {})
@@ -210,13 +216,30 @@ def build_organ_to_biosamples(experiments: list[dict]) -> dict[str, Counter]:
             continue
 
         term_name = biosample_onto.get("term_name")
-        organ_slims = biosample_onto.get("organ_slims", [])
+        slim_values = biosample_onto.get(slim_field, [])
 
-        if term_name and organ_slims and isinstance(organ_slims, list):
-            for organ in organ_slims:
-                organ_to_biosamples[organ][term_name] += 1
+        if term_name and slim_values and isinstance(slim_values, list):
+            for slim_value in slim_values:
+                slim_to_biosamples[slim_value][term_name] += 1
 
-    return organ_to_biosamples
+    return slim_to_biosamples
+
+
+def build_organ_to_biosamples(experiments: list[dict]) -> dict[str, Counter]:
+    """Build mapping of organ_slim -> biosample term_names with counts.
+
+    This uses ENCODE's organ_slims from biosample_ontology, which are
+    UBERON ontology-derived standardized organ classifications.
+
+    Wrapper for backwards compatibility. Uses generic build_slim_to_biosamples.
+
+    Args:
+        experiments: List of experiment records with biosample_ontology.
+
+    Returns:
+        Dictionary mapping organ names to Counter of biosample term_names.
+    """
+    return build_slim_to_biosamples(experiments, "organ_slims")
 
 
 def generate_vocabularies_code(counters: dict[str, Counter]) -> str:
@@ -382,9 +405,12 @@ def main():
     print("Counting unique values for each field...")
     counters = count_field_values(experiments)
 
-    # Build organ_slims -> biosample mapping
-    print("Building organ_slims to biosample mapping...")
-    organ_mapping = build_organ_to_biosamples(experiments)
+    # Build all slim -> biosample mappings
+    print("Building slim to biosample mappings...")
+    organ_mapping = build_slim_to_biosamples(experiments, "organ_slims")
+    cell_mapping = build_slim_to_biosamples(experiments, "cell_slims")
+    developmental_mapping = build_slim_to_biosamples(experiments, "developmental_slims")
+    system_mapping = build_slim_to_biosamples(experiments, "system_slims")
 
     # Print summary
     print()
@@ -393,6 +419,9 @@ def main():
     for field, counter in counters.items():
         print(f"  {field}: {len(counter)} unique values")
     print(f"  organ_slims: {len(organ_mapping)} unique organs")
+    print(f"  cell_slims: {len(cell_mapping)} unique cell types")
+    print(f"  developmental_slims: {len(developmental_mapping)} unique germ layers")
+    print(f"  system_slims: {len(system_mapping)} unique body systems")
     print()
 
     # Save raw data for verification
@@ -410,6 +439,18 @@ def main():
         "organ_to_biosamples": {
             organ: [{"key": k, "count": v} for k, v in counter.most_common()]
             for organ, counter in sorted(organ_mapping.items())
+        },
+        "cell_to_biosamples": {
+            cell: [{"key": k, "count": v} for k, v in counter.most_common()]
+            for cell, counter in sorted(cell_mapping.items())
+        },
+        "developmental_to_biosamples": {
+            dev: [{"key": k, "count": v} for k, v in counter.most_common()]
+            for dev, counter in sorted(developmental_mapping.items())
+        },
+        "system_to_biosamples": {
+            system: [{"key": k, "count": v} for k, v in counter.most_common()]
+            for system, counter in sorted(system_mapping.items())
         },
     }
 
@@ -460,18 +501,24 @@ def main():
         for key, count in counters["life_stage"].most_common():
             print(f"  - {key}: {count} experiments")
 
-    if organ_mapping:
-        print("\nOrgan Systems (organ_slims):")
-        # Sort by total experiment count
-        organ_totals = [
-            (organ, sum(counter.values())) for organ, counter in organ_mapping.items()
-        ]
-        organ_totals.sort(key=lambda x: -x[1])
-        for i, (organ, total) in enumerate(organ_totals[:15], 1):
-            biosample_count = len(organ_mapping[organ])
-            print(
-                f"  {i:2}. {organ}: {total} experiments ({biosample_count} biosamples)"
-            )
+    # Helper to print slim mapping summary
+    def print_slim_summary(name: str, mapping: dict[str, Counter], limit: int = 15):
+        if mapping:
+            print(f"\n{name}:")
+            totals = [(key, sum(counter.values())) for key, counter in mapping.items()]
+            totals.sort(key=lambda x: -x[1])
+            for i, (key, total) in enumerate(totals[:limit], 1):
+                biosample_count = len(mapping[key])
+                print(
+                    f"  {i:2}. {key}: {total} experiments ({biosample_count} biosamples)"
+                )
+
+    print_slim_summary("Organ Systems (organ_slims)", organ_mapping)
+    print_slim_summary("Cell Types (cell_slims)", cell_mapping)
+    print_slim_summary(
+        "Developmental Layers (developmental_slims)", developmental_mapping
+    )
+    print_slim_summary("Body Systems (system_slims)", system_mapping)
 
     print()
     print("=" * 70)
@@ -480,8 +527,8 @@ def main():
     print()
     print("Next steps:")
     print("1. Review encode_facets_raw.json for verification")
-    print("2. Update src/ui/vocabularies.py with data from generated_vocabularies.py")
-    print("3. Update src/api/encode_client.py with verified parameter paths")
+    print("2. All four slim types are now available in the JSON")
+    print("3. Use vocabularies.py accessor functions to access the data")
 
 
 if __name__ == "__main__":

@@ -22,10 +22,12 @@ from src.ui.vocabularies import (
     BODY_PARTS,
     HISTONE_MODIFICATIONS,
     ORGANISMS,
+    SLIM_TYPES,
     get_assay_display_name,
     get_assay_types,
     get_biosample_names,
     get_biosamples_for_organ,
+    get_biosamples_for_slim,
     get_lab_names,
     get_life_stages,
     get_organ_display_name,
@@ -33,6 +35,8 @@ from src.ui.vocabularies import (
     get_organism_display,
     get_organisms,
     get_primary_organ_for_biosample,
+    get_slim_categories,
+    get_slim_display_name,
     get_targets,
 )
 from src.utils.cache import CacheManager
@@ -264,36 +268,60 @@ def render_sidebar() -> dict:
 
     st.sidebar.divider()
 
-    # --- Biosample Selection (Hierarchical) ---
+    # --- Biosample Selection (Hierarchical with Switchable Classification) ---
     st.sidebar.subheader("Biosample")
 
-    # Body Part / Organ System - Dynamic from ENCODE's organ_slims
-    organ_data = get_organ_systems()[:20]  # Top 20 by experiment count
-    organ_options = [""] + [name for name, _ in organ_data]
-    organ_counts = {name: count for name, count in organ_data}
+    # Classification type selector - switches between organ, cell, developmental, system
+    slim_type_options = list(SLIM_TYPES.keys())
+    slim_type_labels = {
+        "organ": "Organ System",
+        "cell": "Cell Type",
+        "developmental": "Germ Layer",
+        "system": "Body System",
+    }
+
+    # Initialize classification type in session state if needed
+    if "classification_type" not in st.session_state:
+        st.session_state.classification_type = "organ"
+
+    classification_type = st.sidebar.selectbox(
+        "Classification Type",
+        options=slim_type_options,
+        index=slim_type_options.index(st.session_state.classification_type),
+        format_func=lambda x: slim_type_labels.get(x, x.title()),
+        help="Choose how to classify biosamples (organ, cell type, germ layer, or body system)",
+        key="filter_classification_type",
+    )
+    st.session_state.classification_type = classification_type
+
+    # Dynamic category selector based on classification type
+    category_data = get_slim_categories(classification_type)[:20]
+    category_options = [""] + [name for name, _ in category_data]
+    category_counts = {name: count for name, count in category_data}
     current_bp = st.session_state.filter_state.body_part or ""
 
+    # For backwards compatibility, body_part stores the selected category
     body_part = st.sidebar.selectbox(
-        "Organ / System",
-        options=organ_options,
-        index=(organ_options.index(current_bp) if current_bp in organ_options else 0),
+        SLIM_TYPES[classification_type]["display_prefix"],
+        options=category_options,
+        index=(category_options.index(current_bp) if current_bp in category_options else 0),
         format_func=lambda x: (
-            "All organs/systems"
+            f"All {slim_type_labels[classification_type].lower()}s"
             if x == ""
-            else f"{get_organ_display_name(x)} ({organ_counts.get(x, 0):,})"
+            else f"{get_slim_display_name(classification_type, x)} ({category_counts.get(x, 0):,})"
         ),
-        help="Select organ system (from ENCODE's organ_slims ontology)",
+        help=SLIM_TYPES[classification_type]["description"],
         key="filter_body_part",
     )
 
-    # Tissue / Cell Type (filtered by organ if selected)
+    # Tissue / Cell Type (filtered by selected category)
     if body_part:
-        # Get biosamples for selected organ from JSON
-        biosamples_data = get_biosamples_for_organ(body_part)[:50]
+        # Get biosamples for selected category from JSON
+        biosamples_data = get_biosamples_for_slim(classification_type, body_part)[:50]
         tissue_options = [""] + [name for name, _ in biosamples_data]
         biosample_counts = {name: count for name, count in biosamples_data}
     else:
-        # Show top global biosamples when no organ selected
+        # Show top global biosamples when no category selected
         tissue_options = [""] + get_biosample_names(limit=100)
         biosample_counts = {}
 
@@ -938,16 +966,25 @@ def render_visualize_tab() -> None:
 
         # Determine available color options based on metadata columns
         available_colors = ["assay_term_name", "organism", "lab"]
-        if (
-            st.session_state.metadata_df is not None
-            and "organ" in st.session_state.metadata_df.columns
-        ):
-            available_colors.insert(2, "organ")
+        if st.session_state.metadata_df is not None:
+            # Add slim type color options if columns exist
+            slim_color_columns = [
+                "organ",
+                "cell_type",
+                "developmental_layer",
+                "body_system",
+            ]
+            for col in slim_color_columns:
+                if col in st.session_state.metadata_df.columns:
+                    available_colors.insert(-1, col)  # Insert before "lab"
 
         color_display_names = {
             "assay_term_name": "Assay Type",
             "organism": "Organism",
             "organ": "Organ System",
+            "cell_type": "Cell Type",
+            "developmental_layer": "Germ Layer",
+            "body_system": "Body System",
             "lab": "Lab",
         }
         color_option = st.selectbox(

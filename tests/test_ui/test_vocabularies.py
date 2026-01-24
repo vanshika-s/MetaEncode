@@ -9,17 +9,25 @@ from src.ui.vocabularies import (
     ASSAY_ALIASES,
     ASSAY_TYPES,
     BODY_PARTS,
+    CELL_TYPE_DISPLAY_NAMES,
     COMMON_LABS,
+    DEVELOPMENTAL_DISPLAY_NAMES,
     HISTONE_ALIASES,
     HISTONE_MODIFICATIONS,
     LIFE_STAGES,
     ORGAN_DISPLAY_NAMES,
     ORGANISM_ASSEMBLIES,
     ORGANISMS,
+    SLIM_TYPES,
+    SYSTEM_DISPLAY_NAMES,
     TISSUE_SYNONYMS,
     TOP_BIOSAMPLES,
     TOP_TARGETS,
+    build_biosample_to_body_systems,
+    build_biosample_to_cell_types,
+    build_biosample_to_developmental_layers,
     build_biosample_to_organs,
+    build_biosample_to_slim,
     format_assay_with_count,
     get_all_assay_types,
     get_all_body_parts,
@@ -27,12 +35,25 @@ from src.ui.vocabularies import (
     get_all_histone_mods,
     get_all_organisms,
     get_all_organs_for_biosample,
+    get_all_slims_for_biosample,
     get_assay_display_name,
     get_assay_types,
     get_biosample_names_for_organ,
     get_biosamples,
+    get_biosamples_for_body_system,
+    get_biosamples_for_cell_type,
+    get_biosamples_for_developmental_layer,
     get_biosamples_for_organ,
+    get_biosamples_for_slim,
     get_body_part_display_name,
+    get_body_system_names,
+    get_body_systems,
+    get_cell_type_display_name,
+    get_cell_type_names,
+    get_cell_types,
+    get_developmental_display_name,
+    get_developmental_layer_names,
+    get_developmental_layers,
     get_facets_timestamp,
     get_labs,
     get_life_stages,
@@ -44,7 +65,15 @@ from src.ui.vocabularies import (
     get_organism_names,
     get_organism_scientific_name,
     get_organisms,
+    get_primary_body_system_for_biosample,
+    get_primary_cell_type_for_biosample,
+    get_primary_developmental_layer_for_biosample,
     get_primary_organ_for_biosample,
+    get_primary_slim_for_biosample,
+    get_slim_categories,
+    get_slim_category_names,
+    get_slim_display_name,
+    get_system_display_name,
     get_target_description,
     get_targets,
     get_tissues_for_body_part,
@@ -971,3 +1000,361 @@ class TestLazyCollections:
         assert isinstance(first_lab, str)
         length = len(COMMON_LABS)
         assert length == 20  # Default limit for COMMON_LABS
+
+
+# =============================================================================
+# Generic Slim Type Tests
+# =============================================================================
+
+
+class TestSlimTypes:
+    """Tests for SLIM_TYPES configuration and generic slim functions."""
+
+    def test_slim_types_config_exists(self) -> None:
+        """Test that SLIM_TYPES configuration contains all four types."""
+        assert "organ" in SLIM_TYPES
+        assert "cell" in SLIM_TYPES
+        assert "developmental" in SLIM_TYPES
+        assert "system" in SLIM_TYPES
+
+    def test_slim_types_has_required_keys(self) -> None:
+        """Test that each slim type has required configuration keys."""
+        for slim_type, config in SLIM_TYPES.items():
+            assert "json_key" in config, f"{slim_type} missing json_key"
+            assert "display_prefix" in config, f"{slim_type} missing display_prefix"
+            assert "description" in config, f"{slim_type} missing description"
+
+    def test_get_slim_categories_organ(self) -> None:
+        """Test get_slim_categories for organ type."""
+        organs = get_slim_categories("organ")
+        assert isinstance(organs, list)
+        assert len(organs) > 0
+        name, count = organs[0]
+        assert isinstance(name, str)
+        assert isinstance(count, int)
+        assert count > 0
+
+    def test_get_slim_categories_cell(self) -> None:
+        """Test get_slim_categories for cell type."""
+        cells = get_slim_categories("cell")
+        assert isinstance(cells, list)
+        assert len(cells) > 0
+        # Should include common cell types
+        cell_names = [name for name, _ in cells]
+        assert any("cell" in name.lower() for name in cell_names)
+
+    def test_get_slim_categories_developmental(self) -> None:
+        """Test get_slim_categories for developmental type."""
+        layers = get_slim_categories("developmental")
+        assert isinstance(layers, list)
+        # Should have ~3 germ layers (mesoderm, ectoderm, endoderm)
+        assert len(layers) >= 3
+        layer_names = [name for name, _ in layers]
+        expected = {"mesoderm", "ectoderm", "endoderm"}
+        found = set(layer_names) & expected
+        assert len(found) == 3, f"Expected all germ layers, found {layer_names}"
+
+    def test_get_slim_categories_system(self) -> None:
+        """Test get_slim_categories for system type."""
+        systems = get_slim_categories("system")
+        assert isinstance(systems, list)
+        assert len(systems) > 0
+        system_names = [name for name, _ in systems]
+        # Should contain common body systems
+        assert any("nervous" in name.lower() for name in system_names)
+        assert any("immune" in name.lower() for name in system_names)
+
+    def test_get_slim_categories_invalid_type(self) -> None:
+        """Test that invalid slim type raises ValueError."""
+        import pytest
+
+        with pytest.raises(ValueError, match="Unknown slim type"):
+            get_slim_categories("invalid_type")
+
+    def test_get_slim_categories_ordered_by_count(self) -> None:
+        """Test that slim categories are ordered by experiment count."""
+        for slim_type in SLIM_TYPES.keys():
+            categories = get_slim_categories(slim_type)
+            counts = [count for name, count in categories]
+            assert counts == sorted(
+                counts, reverse=True
+            ), f"{slim_type} categories not ordered by count"
+
+    def test_get_slim_category_names(self) -> None:
+        """Test get_slim_category_names returns list of names."""
+        for slim_type in SLIM_TYPES.keys():
+            names = get_slim_category_names(slim_type)
+            assert isinstance(names, list)
+            assert len(names) > 0
+            assert all(isinstance(name, str) for name in names)
+
+    def test_get_biosamples_for_slim(self) -> None:
+        """Test get_biosamples_for_slim returns biosamples for a category."""
+        # Test with organ
+        brain_samples = get_biosamples_for_slim("organ", "brain")
+        assert isinstance(brain_samples, list)
+        assert len(brain_samples) > 0
+        for name, count in brain_samples:
+            assert isinstance(name, str)
+            assert isinstance(count, int)
+
+    def test_get_biosamples_for_slim_unknown_category(self) -> None:
+        """Test get_biosamples_for_slim returns empty list for unknown category."""
+        result = get_biosamples_for_slim("organ", "nonexistent_organ")
+        assert result == []
+
+    def test_build_biosample_to_slim(self) -> None:
+        """Test build_biosample_to_slim builds reverse mapping."""
+        for slim_type in SLIM_TYPES.keys():
+            mapping = build_biosample_to_slim(slim_type)
+            assert isinstance(mapping, dict)
+            # Should have biosamples mapped
+            if mapping:  # Some mappings may be empty in test data
+                first_key = next(iter(mapping.keys()))
+                assert isinstance(first_key, str)
+                assert isinstance(mapping[first_key], list)
+
+    def test_get_primary_slim_for_biosample(self) -> None:
+        """Test get_primary_slim_for_biosample returns primary category."""
+        # Test with a known biosample
+        result = get_primary_slim_for_biosample("organ", "cerebellum")
+        if result:  # May be None if not in mapping
+            assert isinstance(result, str)
+
+    def test_get_primary_slim_for_unknown_biosample(self) -> None:
+        """Test get_primary_slim_for_biosample returns None for unknown."""
+        result = get_primary_slim_for_biosample("organ", "nonexistent_sample")
+        assert result is None
+
+    def test_get_all_slims_for_biosample(self) -> None:
+        """Test get_all_slims_for_biosample returns list of categories."""
+        result = get_all_slims_for_biosample("organ", "cerebellum")
+        assert isinstance(result, list)
+        if result:
+            assert all(isinstance(cat, str) for cat in result)
+
+    def test_get_slim_display_name(self) -> None:
+        """Test get_slim_display_name returns display names."""
+        # Test organ
+        assert get_slim_display_name("organ", "bodily fluid") == "Blood / Bodily Fluid"
+        # Test cell
+        assert "Cells" in get_slim_display_name("cell", "hematopoietic cell")
+        # Test developmental
+        assert "Mesoderm" in get_slim_display_name("developmental", "mesoderm")
+        # Test system
+        assert get_slim_display_name("system", "immune system") == "Immune System"
+
+
+# =============================================================================
+# Cell Slims Tests
+# =============================================================================
+
+
+class TestCellSlims:
+    """Tests for cell_slims functions."""
+
+    def test_get_cell_types_returns_list(self) -> None:
+        """Test that get_cell_types returns ordered list of tuples."""
+        cells = get_cell_types()
+        assert isinstance(cells, list)
+        assert len(cells) > 0
+        name, count = cells[0]
+        assert isinstance(name, str)
+        assert isinstance(count, int)
+
+    def test_get_cell_types_ordered_by_count(self) -> None:
+        """Test that cell types are ordered by experiment count."""
+        cells = get_cell_types()
+        counts = [count for name, count in cells]
+        assert counts == sorted(counts, reverse=True)
+
+    def test_get_cell_types_contains_common_types(self) -> None:
+        """Test that cell types contains common cell classifications."""
+        cells = get_cell_types()
+        cell_names = [name for name, _ in cells]
+        # Should contain common cell types
+        expected_patterns = ["cell", "stem", "epithelial", "hematopoietic"]
+        for pattern in expected_patterns:
+            assert any(
+                pattern in name.lower() for name in cell_names
+            ), f"Expected '{pattern}' in cell types"
+
+    def test_get_cell_type_names(self) -> None:
+        """Test get_cell_type_names returns list of names."""
+        names = get_cell_type_names()
+        assert isinstance(names, list)
+        assert len(names) > 0
+        assert all(isinstance(name, str) for name in names)
+
+    def test_get_biosamples_for_cell_type(self) -> None:
+        """Test getting biosamples for a cell type."""
+        cells = get_cell_types()
+        if cells:
+            first_cell = cells[0][0]
+            biosamples = get_biosamples_for_cell_type(first_cell)
+            assert isinstance(biosamples, list)
+
+    def test_get_primary_cell_type_for_biosample(self) -> None:
+        """Test getting primary cell type for biosample."""
+        # K562 is a cancer cell line
+        result = get_primary_cell_type_for_biosample("K562")
+        if result:
+            assert isinstance(result, str)
+
+    def test_build_biosample_to_cell_types(self) -> None:
+        """Test reverse mapping from biosample to cell types."""
+        mapping = build_biosample_to_cell_types()
+        assert isinstance(mapping, dict)
+
+    def test_cell_type_display_names_mapping(self) -> None:
+        """Test CELL_TYPE_DISPLAY_NAMES has valid entries."""
+        assert isinstance(CELL_TYPE_DISPLAY_NAMES, dict)
+        for key, value in CELL_TYPE_DISPLAY_NAMES.items():
+            assert isinstance(key, str)
+            assert isinstance(value, str)
+
+    def test_get_cell_type_display_name(self) -> None:
+        """Test get_cell_type_display_name returns display names."""
+        result = get_cell_type_display_name("hematopoietic cell")
+        assert result == "Blood/Immune Cells"
+        # Unknown cell type should be title-cased
+        result = get_cell_type_display_name("unknown_cell")
+        assert result == "Unknown Cell"
+
+
+# =============================================================================
+# Developmental Slims Tests
+# =============================================================================
+
+
+class TestDevelopmentalSlims:
+    """Tests for developmental_slims functions."""
+
+    def test_get_developmental_layers_returns_list(self) -> None:
+        """Test that get_developmental_layers returns list of tuples."""
+        layers = get_developmental_layers()
+        assert isinstance(layers, list)
+        assert len(layers) >= 3  # At least 3 germ layers
+
+    def test_developmental_layers_contains_germ_layers(self) -> None:
+        """Test that all three germ layers are present."""
+        layers = get_developmental_layers()
+        layer_names = [name for name, count in layers]
+        expected = {"mesoderm", "ectoderm", "endoderm"}
+        assert expected.issubset(
+            set(layer_names)
+        ), f"Missing germ layers: {layer_names}"
+
+    def test_get_developmental_layer_names(self) -> None:
+        """Test get_developmental_layer_names returns list of names."""
+        names = get_developmental_layer_names()
+        assert isinstance(names, list)
+        assert "mesoderm" in names
+        assert "ectoderm" in names
+        assert "endoderm" in names
+
+    def test_get_biosamples_for_developmental_layer(self) -> None:
+        """Test getting biosamples for a developmental layer."""
+        biosamples = get_biosamples_for_developmental_layer("mesoderm")
+        assert isinstance(biosamples, list)
+        assert len(biosamples) > 0  # Mesoderm should have many biosamples
+
+    def test_get_primary_developmental_layer_for_biosample(self) -> None:
+        """Test getting primary developmental layer for biosample."""
+        # Brain-derived tissue should be ectoderm
+        result = get_primary_developmental_layer_for_biosample("cerebellum")
+        if result:
+            assert result == "ectoderm"
+
+    def test_build_biosample_to_developmental_layers(self) -> None:
+        """Test reverse mapping from biosample to developmental layers."""
+        mapping = build_biosample_to_developmental_layers()
+        assert isinstance(mapping, dict)
+        assert len(mapping) > 0
+
+    def test_developmental_display_names_mapping(self) -> None:
+        """Test DEVELOPMENTAL_DISPLAY_NAMES has valid entries."""
+        assert isinstance(DEVELOPMENTAL_DISPLAY_NAMES, dict)
+        assert "mesoderm" in DEVELOPMENTAL_DISPLAY_NAMES
+        assert "ectoderm" in DEVELOPMENTAL_DISPLAY_NAMES
+        assert "endoderm" in DEVELOPMENTAL_DISPLAY_NAMES
+
+    def test_get_developmental_display_name(self) -> None:
+        """Test get_developmental_display_name returns display names."""
+        assert "Mesoderm" in get_developmental_display_name("mesoderm")
+        assert "Ectoderm" in get_developmental_display_name("ectoderm")
+        assert "Endoderm" in get_developmental_display_name("endoderm")
+
+
+# =============================================================================
+# System Slims Tests
+# =============================================================================
+
+
+class TestSystemSlims:
+    """Tests for system_slims functions."""
+
+    def test_get_body_systems_returns_list(self) -> None:
+        """Test that get_body_systems returns list of tuples."""
+        systems = get_body_systems()
+        assert isinstance(systems, list)
+        assert len(systems) > 0
+        name, count = systems[0]
+        assert isinstance(name, str)
+        assert isinstance(count, int)
+
+    def test_get_body_systems_ordered_by_count(self) -> None:
+        """Test that body systems are ordered by experiment count."""
+        systems = get_body_systems()
+        counts = [count for name, count in systems]
+        assert counts == sorted(counts, reverse=True)
+
+    def test_get_body_systems_contains_known_systems(self) -> None:
+        """Test that known body systems are present."""
+        systems = get_body_systems()
+        system_names = [name.lower() for name, count in systems]
+        # Should contain common body systems
+        expected_keywords = ["nervous", "immune", "digestive", "respiratory"]
+        for keyword in expected_keywords:
+            assert any(
+                keyword in s for s in system_names
+            ), f"Expected '{keyword}' in system names"
+
+    def test_get_body_system_names(self) -> None:
+        """Test get_body_system_names returns list of names."""
+        names = get_body_system_names()
+        assert isinstance(names, list)
+        assert len(names) > 0
+        assert all(isinstance(name, str) for name in names)
+
+    def test_get_biosamples_for_body_system(self) -> None:
+        """Test getting biosamples for a body system."""
+        systems = get_body_systems()
+        if systems:
+            first_system = systems[0][0]
+            biosamples = get_biosamples_for_body_system(first_system)
+            assert isinstance(biosamples, list)
+
+    def test_get_primary_body_system_for_biosample(self) -> None:
+        """Test getting primary body system for biosample."""
+        result = get_primary_body_system_for_biosample("heart")
+        if result:
+            assert isinstance(result, str)
+
+    def test_build_biosample_to_body_systems(self) -> None:
+        """Test reverse mapping from biosample to body systems."""
+        mapping = build_biosample_to_body_systems()
+        assert isinstance(mapping, dict)
+
+    def test_system_display_names_mapping(self) -> None:
+        """Test SYSTEM_DISPLAY_NAMES has valid entries."""
+        assert isinstance(SYSTEM_DISPLAY_NAMES, dict)
+        assert "immune system" in SYSTEM_DISPLAY_NAMES
+        assert "nervous" in "".join(SYSTEM_DISPLAY_NAMES.keys()).lower()
+
+    def test_get_system_display_name(self) -> None:
+        """Test get_system_display_name returns display names."""
+        assert get_system_display_name("immune system") == "Immune System"
+        # Unknown system should be title-cased
+        result = get_system_display_name("unknown_system")
+        assert result == "Unknown System"

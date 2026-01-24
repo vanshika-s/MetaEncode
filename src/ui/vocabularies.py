@@ -63,6 +63,35 @@ def reload_facets() -> None:
 
 
 # =============================================================================
+# SLIM TYPE CONFIGURATION
+# =============================================================================
+
+# Configuration for all four ENCODE slim types for uniform handling
+SLIM_TYPES: dict[str, dict[str, str]] = {
+    "organ": {
+        "json_key": "organ_to_biosamples",
+        "display_prefix": "Organ System",
+        "description": "Anatomical organ classification (brain, heart, liver)",
+    },
+    "cell": {
+        "json_key": "cell_to_biosamples",
+        "display_prefix": "Cell Type",
+        "description": "Cell type classification (T cell, stem cell, epithelial cell)",
+    },
+    "developmental": {
+        "json_key": "developmental_to_biosamples",
+        "display_prefix": "Germ Layer",
+        "description": "Embryonic germ layer origin (mesoderm, ectoderm, endoderm)",
+    },
+    "system": {
+        "json_key": "system_to_biosamples",
+        "display_prefix": "Body System",
+        "description": "Body system classification (nervous system, immune system)",
+    },
+}
+
+
+# =============================================================================
 # ACCESSOR FUNCTIONS (Load from JSON, ordered by popularity)
 # =============================================================================
 
@@ -368,6 +397,425 @@ def get_all_organs_for_biosample(biosample: str) -> list[str]:
     """
     mapping = build_biosample_to_organs()
     return mapping.get(biosample, [])
+
+
+# =============================================================================
+# GENERIC SLIM TYPE FUNCTIONS
+# =============================================================================
+
+
+def _get_slim_data(slim_type: str) -> dict:
+    """Get raw slim data from JSON by type.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+
+    Returns:
+        Dictionary mapping slim values to lists of biosample dicts.
+
+    Raises:
+        ValueError: If slim_type is not recognized.
+    """
+    if slim_type not in SLIM_TYPES:
+        raise ValueError(
+            f"Unknown slim type: {slim_type}. "
+            f"Must be one of: {list(SLIM_TYPES.keys())}"
+        )
+    data = _load_facets()
+    json_key = SLIM_TYPES[slim_type]["json_key"]
+    return data.get(json_key, {})
+
+
+@lru_cache(maxsize=4)
+def get_slim_categories(slim_type: str) -> list[tuple[str, int]]:
+    """Return slim categories ordered by total experiments.
+
+    Generic accessor for all four slim types.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+
+    Returns:
+        List of (category_name, total_experiment_count) tuples,
+        ordered by experiment count (most popular first).
+
+    Example:
+        >>> cells = get_slim_categories("cell")
+        >>> cells[0]
+        ('cancer cell', 7042)
+        >>> layers = get_slim_categories("developmental")
+        >>> layers
+        [('mesoderm', 11110), ('endoderm', 7533), ('ectoderm', 5487)]
+    """
+    slim_data = _get_slim_data(slim_type)
+    category_totals = []
+    for category, biosamples in slim_data.items():
+        total = sum(item["count"] for item in biosamples)
+        category_totals.append((category, total))
+    return sorted(category_totals, key=lambda x: -x[1])
+
+
+def get_slim_category_names(slim_type: str) -> list[str]:
+    """Return slim category names ordered by popularity.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+
+    Returns:
+        List of category names, most experiments first.
+    """
+    return [name for name, _ in get_slim_categories(slim_type)]
+
+
+@lru_cache(maxsize=128)
+def get_biosamples_for_slim(slim_type: str, category: str) -> list[tuple[str, int]]:
+    """Return biosamples for a slim category, ordered by experiment count.
+
+    Generic accessor for all four slim types.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+        category: The slim category (e.g., "brain", "T cell", "ectoderm").
+
+    Returns:
+        List of (biosample_name, experiment_count) tuples, ordered by count.
+        Empty list if category not found.
+
+    Example:
+        >>> tcells = get_biosamples_for_slim("cell", "T cell")
+        >>> tcells[0]
+        ('CD4-positive, alpha-beta T cell', ...)
+    """
+    slim_data = _get_slim_data(slim_type)
+    items = slim_data.get(category, [])
+    return [(item["key"], item["count"]) for item in items]
+
+
+@lru_cache(maxsize=4)
+def build_biosample_to_slim(slim_type: str) -> dict[str, list[str]]:
+    """Build reverse mapping from biosample to slim categories.
+
+    Generic function for all four slim types.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+
+    Returns:
+        Dict mapping biosample names to list of slim categories,
+        ordered by category experiment count (most popular first).
+
+    Example:
+        >>> mapping = build_biosample_to_slim("developmental")
+        >>> mapping.get("cerebellum")
+        ['ectoderm']
+    """
+    slim_data = _get_slim_data(slim_type)
+
+    biosample_to_categories: dict[str, list[tuple[str, int]]] = {}
+
+    for category, biosamples in slim_data.items():
+        category_total = sum(item["count"] for item in biosamples)
+        for item in biosamples:
+            key = item["key"]
+            if key not in biosample_to_categories:
+                biosample_to_categories[key] = []
+            biosample_to_categories[key].append((category, category_total))
+
+    result: dict[str, list[str]] = {}
+    for biosample, cat_list in biosample_to_categories.items():
+        cat_list.sort(key=lambda x: -x[1])
+        result[biosample] = [cat for cat, _ in cat_list]
+
+    return result
+
+
+def get_primary_slim_for_biosample(slim_type: str, biosample: str) -> str | None:
+    """Get the primary (most relevant) slim category for a biosample.
+
+    Generic function for all four slim types.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+        biosample: Biosample term_name.
+
+    Returns:
+        Primary category name or None if not found.
+
+    Example:
+        >>> get_primary_slim_for_biosample("developmental", "cerebellum")
+        'ectoderm'
+        >>> get_primary_slim_for_biosample("system", "heart")
+        'circulatory system'
+    """
+    mapping = build_biosample_to_slim(slim_type)
+    categories = mapping.get(biosample, [])
+    return categories[0] if categories else None
+
+
+def get_all_slims_for_biosample(slim_type: str, biosample: str) -> list[str]:
+    """Get all slim categories for a biosample.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+        biosample: Biosample term_name.
+
+    Returns:
+        List of category names, ordered by experiment count.
+    """
+    mapping = build_biosample_to_slim(slim_type)
+    return mapping.get(biosample, [])
+
+
+# =============================================================================
+# CELL SLIMS (Cell type classifications)
+# =============================================================================
+
+
+@lru_cache(maxsize=1)
+def get_cell_types() -> list[tuple[str, int]]:
+    """Return cell types from ENCODE's cell_slims, ordered by total experiments.
+
+    Returns:
+        List of (cell_type_name, total_experiment_count) tuples.
+
+    Example:
+        >>> cells = get_cell_types()
+        >>> cells[0]
+        ('cancer cell', 7042)
+    """
+    return get_slim_categories("cell")
+
+
+def get_cell_type_names() -> list[str]:
+    """Return cell type names ordered by popularity."""
+    return [name for name, _ in get_cell_types()]
+
+
+@lru_cache(maxsize=64)
+def get_biosamples_for_cell_type(cell_type: str) -> list[tuple[str, int]]:
+    """Return biosamples for a cell type, ordered by experiment count.
+
+    Args:
+        cell_type: Cell type name (e.g., "T cell", "stem cell").
+
+    Returns:
+        List of (biosample_name, experiment_count) tuples.
+    """
+    return get_biosamples_for_slim("cell", cell_type)
+
+
+def get_primary_cell_type_for_biosample(biosample: str) -> str | None:
+    """Get the primary cell type for a biosample.
+
+    Args:
+        biosample: Biosample term_name.
+
+    Returns:
+        Primary cell type or None if not found.
+    """
+    return get_primary_slim_for_biosample("cell", biosample)
+
+
+@lru_cache(maxsize=1)
+def build_biosample_to_cell_types() -> dict[str, list[str]]:
+    """Build reverse mapping from biosample to cell types."""
+    return build_biosample_to_slim("cell")
+
+
+# Display name mappings for cell_slims
+CELL_TYPE_DISPLAY_NAMES: dict[str, str] = {
+    "hematopoietic cell": "Blood/Immune Cells",
+    "epithelial cell": "Epithelial Cells",
+    "mesenchymal cell": "Mesenchymal Cells",
+    "neural cell": "Neural Cells",
+    "connective tissue cell": "Connective Tissue Cells",
+    "cancer cell": "Cancer Cells",
+    "stem cell": "Stem Cells",
+    "induced pluripotent stem cell": "iPSCs",
+    "embryonic cell": "Embryonic Cells",
+}
+
+
+def get_cell_type_display_name(cell_type: str) -> str:
+    """Get UI-friendly display name for a cell type."""
+    return CELL_TYPE_DISPLAY_NAMES.get(cell_type, cell_type.replace("_", " ").title())
+
+
+# =============================================================================
+# DEVELOPMENTAL SLIMS (Embryonic germ layers)
+# =============================================================================
+
+
+@lru_cache(maxsize=1)
+def get_developmental_layers() -> list[tuple[str, int]]:
+    """Return developmental/germ layers from ENCODE's developmental_slims.
+
+    These represent the three primary germ layers from embryonic development.
+
+    Returns:
+        List of (layer_name, total_experiment_count) tuples.
+
+    Example:
+        >>> layers = get_developmental_layers()
+        >>> layers
+        [('mesoderm', 11110), ('endoderm', 7533), ('ectoderm', 5487)]
+    """
+    return get_slim_categories("developmental")
+
+
+def get_developmental_layer_names() -> list[str]:
+    """Return developmental layer names ordered by popularity."""
+    return [name for name, _ in get_developmental_layers()]
+
+
+@lru_cache(maxsize=64)
+def get_biosamples_for_developmental_layer(layer: str) -> list[tuple[str, int]]:
+    """Return biosamples for a developmental layer (e.g., mesoderm).
+
+    Args:
+        layer: Germ layer name (mesoderm, ectoderm, or endoderm).
+
+    Returns:
+        List of (biosample_name, experiment_count) tuples.
+    """
+    return get_biosamples_for_slim("developmental", layer)
+
+
+def get_primary_developmental_layer_for_biosample(biosample: str) -> str | None:
+    """Get the primary developmental layer for a biosample.
+
+    Args:
+        biosample: Biosample term_name.
+
+    Returns:
+        Primary germ layer or None if not found.
+    """
+    return get_primary_slim_for_biosample("developmental", biosample)
+
+
+@lru_cache(maxsize=1)
+def build_biosample_to_developmental_layers() -> dict[str, list[str]]:
+    """Build reverse mapping from biosample to developmental layers."""
+    return build_biosample_to_slim("developmental")
+
+
+# Display name mappings for developmental_slims
+DEVELOPMENTAL_DISPLAY_NAMES: dict[str, str] = {
+    "mesoderm": "Mesoderm (Middle Layer)",
+    "ectoderm": "Ectoderm (Outer Layer)",
+    "endoderm": "Endoderm (Inner Layer)",
+}
+
+
+def get_developmental_display_name(layer: str) -> str:
+    """Get UI-friendly display name for a developmental layer."""
+    return DEVELOPMENTAL_DISPLAY_NAMES.get(layer, layer.title())
+
+
+# =============================================================================
+# SYSTEM SLIMS (Body systems)
+# =============================================================================
+
+
+@lru_cache(maxsize=1)
+def get_body_systems() -> list[tuple[str, int]]:
+    """Return body systems from ENCODE's system_slims, ordered by experiments.
+
+    Returns:
+        List of (system_name, total_experiment_count) tuples.
+
+    Example:
+        >>> systems = get_body_systems()
+        >>> systems[0]
+        ('immune system', 7233)
+    """
+    return get_slim_categories("system")
+
+
+def get_body_system_names() -> list[str]:
+    """Return body system names ordered by popularity."""
+    return [name for name, _ in get_body_systems()]
+
+
+@lru_cache(maxsize=64)
+def get_biosamples_for_body_system(system: str) -> list[tuple[str, int]]:
+    """Return biosamples for a body system (e.g., nervous system).
+
+    Args:
+        system: Body system name (e.g., "immune system", "nervous system").
+
+    Returns:
+        List of (biosample_name, experiment_count) tuples.
+    """
+    return get_biosamples_for_slim("system", system)
+
+
+def get_primary_body_system_for_biosample(biosample: str) -> str | None:
+    """Get the primary body system for a biosample.
+
+    Args:
+        biosample: Biosample term_name.
+
+    Returns:
+        Primary body system or None if not found.
+    """
+    return get_primary_slim_for_biosample("system", biosample)
+
+
+@lru_cache(maxsize=1)
+def build_biosample_to_body_systems() -> dict[str, list[str]]:
+    """Build reverse mapping from biosample to body systems."""
+    return build_biosample_to_slim("system")
+
+
+# Display name mappings for system_slims
+SYSTEM_DISPLAY_NAMES: dict[str, str] = {
+    "central nervous system": "Central Nervous System",
+    "peripheral nervous system": "Peripheral Nervous System",
+    "immune system": "Immune System",
+    "musculature": "Muscular System",
+    "circulatory system": "Circulatory System",
+    "respiratory system": "Respiratory System",
+    "digestive system": "Digestive System",
+    "excretory system": "Excretory System",
+    "reproductive system": "Reproductive System",
+    "integumental system": "Integumentary System",
+    "skeletal system": "Skeletal System",
+    "endocrine system": "Endocrine System",
+    "exocrine system": "Exocrine System",
+    "sensory system": "Sensory System",
+}
+
+
+def get_system_display_name(system: str) -> str:
+    """Get UI-friendly display name for a body system."""
+    return SYSTEM_DISPLAY_NAMES.get(system, system.replace("_", " ").title())
+
+
+# =============================================================================
+# SLIM TYPE DISPLAY NAME DISPATCHER
+# =============================================================================
+
+
+def get_slim_display_name(slim_type: str, value: str) -> str:
+    """Get UI-friendly display name for any slim type value.
+
+    Args:
+        slim_type: One of "organ", "cell", "developmental", "system".
+        value: The slim value to get display name for.
+
+    Returns:
+        Display name for the value.
+    """
+    dispatch = {
+        "organ": get_organ_display_name,
+        "cell": get_cell_type_display_name,
+        "developmental": get_developmental_display_name,
+        "system": get_system_display_name,
+    }
+    if slim_type in dispatch:
+        return dispatch[slim_type](value)
+    return value.replace("_", " ").title()
 
 
 # =============================================================================

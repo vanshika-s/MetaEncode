@@ -540,7 +540,9 @@ def get_spell_checker() -> VocabularySpellChecker:
     return VocabularySpellChecker.from_encode_vocabularies()
 
 
-def suggest_correction(query: str, max_suggestions: int = 5) -> List[SpellingSuggestion]:
+def suggest_correction(
+    query: str, max_suggestions: int = 5
+) -> List[SpellingSuggestion]:
     """Convenience function to get spelling suggestions.
 
     Args:

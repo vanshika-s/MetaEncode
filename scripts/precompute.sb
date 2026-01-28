@@ -1,0 +1,42 @@
+#!/bin/bash
+#SBATCH --job-name=encode_data
+#SBATCH --output=logs/precompute_%j.out
+#SBATCH --partition=shared
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=40G
+#SBATCH --time=06:00:00
+#SBATCH --account=csd940
+
+echo "========================================="
+echo "MetaENCODE - Precompute Embeddings"
+echo "========================================="
+echo "Job ID: $SLURM_JOB_ID"
+echo "Node: $HOSTNAME"
+echo "Start time: $(date)"
+echo "========================================="
+echo ""
+
+source ~/.bashrc
+conda activate encode
+
+echo "Environment check:"
+which python
+python --version
+echo ""
+
+echo "Starting precomputation script..."
+cd /expanse/lustre/projects/csd940/zalibhai/encode/MetaENCODE
+python scripts/precompute_embeddings.py --limit all --batch-size 64
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "Precomputation completed successfully"
+else
+    echo ""
+    echo "Precomputation failed with exit code $?"
+fi
+
+echo "End time: $(date)"
+echo "========================================="

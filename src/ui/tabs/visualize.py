@@ -25,6 +25,9 @@ def generate_visualization(method: str, color_by: str) -> None:
             st.session_state.coords_2d = coords_2d
         except Exception as e:
             st.error(f"Error generating visualization: {e}")
+            st.info(
+                "Tip: Try using PCA instead of UMAP, or ensure data is loaded first."
+            )
 
 
 def render_visualize_tab() -> None:

@@ -267,10 +267,10 @@ class Inspector(object):
         self.rdfGraph = ConjunctiveGraph()
         try:
             self.rdfGraph.parse(uri, format="application/rdf+xml")
-        except:
+        except Exception:
             try:
                 self.rdfGraph.parse(uri, format="n3")
-            except:
+            except Exception:
                 raise exceptions.Error(
                     "Could not parse the file! Is `%s` a valid RDF/OWL ontology?" % uri
                 )
@@ -465,7 +465,7 @@ def inferNamespacePrefix(aUri):
     stringa = aUri.__str__()
     try:
         prefix = stringa.replace("#", "").split("/")[-1]
-    except:
+    except (IndexError, AttributeError):
         prefix = ""
     return prefix
 
@@ -475,13 +475,13 @@ def sort_uri_list_by_name(uri_list):
     def get_last_bit(uri_string):
         try:
             x = uri_string.split("#")[1]
-        except:
+        except IndexError:
             x = uri_string.split("/")[-1]
         return x
 
     try:
         return sorted(uri_list, key=lambda x: get_last_bit(x.__str__()))
-    except:
+    except (TypeError, UnicodeEncodeError):
         # TODO: do more testing.. maybe use a unicode-safe method instead of __str__
         print("Error in <sort_uri_list_by_name>: possibly a UnicodeEncodeError")
         return uri_list
@@ -520,7 +520,7 @@ def splitNameFromNamespace(aUri):
     try:
         ns = stringa.split("#")[0]
         name = stringa.split("#")[1]
-    except:
+    except IndexError:
         ns = stringa.rsplit("/", 1)[0]
         name = stringa.rsplit("/", 1)[1]
     return (name, ns)
@@ -689,7 +689,7 @@ def main():
 
                 try:
                     terms[term_id]["name"] = data.rdfGraph.label(c).__str__()
-                except:
+                except (AttributeError, TypeError):
                     terms[term_id]["name"] = ""
 
                 terms[term_id]["preferred_name"] = preferred_name.get(term_id, "")
@@ -821,7 +821,7 @@ def main():
                 for syn in data.entitySynonyms(c):
                     try:
                         terms[term_id]["synonyms"].append(syn.__str__())
-                    except:
+                    except (AttributeError, TypeError):
                         pass
 
     # Get only CLO terms from the CLO owl file
@@ -835,7 +835,7 @@ def main():
             for syn in data.entitySynonyms(c):
                 try:
                     terms[term_id]["synonyms"].append(syn.__str__())
-                except:
+                except (AttributeError, TypeError):
                     pass
 
     for term in terms:

@@ -7,6 +7,8 @@ variables used throughout the application.
 
 import streamlit as st
 
+from src.ml.similarity import SimilarityEngine
+from src.ui.components.initializers import get_cache_manager, load_cached_data
 from src.ui.search_filters import FilterState
 
 # Default values for session state
@@ -56,10 +58,6 @@ def load_cached_data_into_session() -> bool:
     # Skip if already loaded
     if st.session_state.metadata_df is not None:
         return False
-
-    # Import here to avoid circular imports
-    from src.ml.similarity import SimilarityEngine
-    from src.ui.components.initializers import get_cache_manager, load_cached_data
 
     cache_mgr = get_cache_manager()
     cached_meta, cached_emb, cached_combined, cached_combiner = load_cached_data(

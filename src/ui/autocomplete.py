@@ -24,12 +24,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from src.ui.search_filters import SearchFilterManager
 from src.ui.vocabularies import (
     ASSAY_ALIASES,
-    BODY_PARTS,
     HISTONE_ALIASES,
     ORGANISM_ASSEMBLIES,
     get_assay_types,
@@ -403,7 +402,7 @@ def get_autocomplete_provider() -> AutocompleteProvider:
 
 def create_biosample_search_fn(
     organ: Optional[str] = None,
-) -> callable:
+) -> Callable[[str], List[Tuple[str, str]]]:
     """Create a search function for biosample autocomplete.
 
     Args:
@@ -424,7 +423,7 @@ def create_biosample_search_fn(
     return search_fn
 
 
-def create_target_search_fn() -> callable:
+def create_target_search_fn() -> Callable[[str], List[Tuple[str, str]]]:
     """Create a search function for target/histone autocomplete.
 
     Returns:
@@ -439,7 +438,7 @@ def create_target_search_fn() -> callable:
     return search_fn
 
 
-def create_assay_search_fn() -> callable:
+def create_assay_search_fn() -> Callable[[str], List[Tuple[str, str]]]:
     """Create a search function for assay type autocomplete.
 
     Returns:
@@ -454,7 +453,7 @@ def create_assay_search_fn() -> callable:
     return search_fn
 
 
-def create_organism_search_fn() -> callable:
+def create_organism_search_fn() -> Callable[[str], List[Tuple[str, str]]]:
     """Create a search function for organism autocomplete.
 
     Returns:
@@ -469,7 +468,7 @@ def create_organism_search_fn() -> callable:
     return search_fn
 
 
-def create_lab_search_fn() -> callable:
+def create_lab_search_fn() -> Callable[[str], List[Tuple[str, str]]]:
     """Create a search function for lab autocomplete.
 
     Returns:
@@ -484,7 +483,7 @@ def create_lab_search_fn() -> callable:
     return search_fn
 
 
-def create_organ_search_fn() -> callable:
+def create_organ_search_fn() -> Callable[[str], List[Tuple[str, str]]]:
     """Create a search function for organ/body part autocomplete.
 
     Returns:

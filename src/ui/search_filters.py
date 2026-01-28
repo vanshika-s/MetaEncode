@@ -31,6 +31,7 @@ def _get_spell_checker():
             pass
     return _spell_checker
 
+
 from src.ui.vocabularies import (
     ASSAY_ALIASES,
     ASSAY_TYPES,

@@ -17,11 +17,17 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 
-# Orange-to-blue diverging colorscale for similarity scores
+# Diverging colorscale for similarity scores (more intermediate stops)
 SIMILARITY_COLORSCALE = [
-    [0.0, "rgb(230, 97, 1)"],    # Orange (low similarity)
-    [0.5, "rgb(247, 247, 247)"], # White (mid)
-    [1.0, "rgb(33, 102, 172)"],  # Blue (high similarity)
+    [0.0, "rgb(179, 88, 6)"],     # Dark orange (lowest)
+    [0.15, "rgb(224, 130, 20)"],  # Orange
+    [0.3, "rgb(253, 184, 99)"],   # Light orange
+    [0.45, "rgb(254, 224, 182)"], # Pale orange
+    [0.5, "rgb(247, 247, 247)"],  # White (mid)
+    [0.55, "rgb(216, 218, 235)"], # Pale purple
+    [0.7, "rgb(158, 154, 200)"],  # Light purple
+    [0.85, "rgb(106, 81, 163)"],  # Purple
+    [1.0, "rgb(63, 0, 125)"],     # Dark purple (highest)
 ]
 
 

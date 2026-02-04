@@ -4,7 +4,12 @@
 import streamlit as st
 
 from src.ui.components.initializers import get_api_client
-from src.ui.formatters import format_organism_display, truncate_text
+from src.ui.formatters import (
+    format_accession_as_link,
+    format_organism_display,
+    get_encode_experiment_url,
+    truncate_text,
+)
 
 
 def render_search_tab() -> None:
@@ -47,6 +52,9 @@ def render_search_tab() -> None:
                     lambda x: truncate_text(str(x), 80)
                 )
 
+            # Add Portal column with ENCODE URLs for clickable links
+            display_df["Portal"] = results_df["accession"].apply(get_encode_experiment_url)
+
             # Rename columns for display
             column_labels = {
                 "accession": "Accession",
@@ -61,6 +69,15 @@ def render_search_tab() -> None:
                 }
             )
 
+            # Configure Portal column as clickable link showing accession ID
+            column_config = {
+                "Portal": st.column_config.LinkColumn(
+                    "Portal",
+                    display_text=r"experiments/(ENC[^/]+)/",
+                    help="Click to open on ENCODE Portal",
+                ),
+            }
+
             # Let user select a row
             selection = st.dataframe(
                 display_df.head(max_results),
@@ -68,14 +85,22 @@ def render_search_tab() -> None:
                 hide_index=True,
                 on_select="rerun",
                 selection_mode="single-row",
+                column_config=column_config,
             )
 
             # Handle selection
-            if selection and selection.selection.rows:
-                selected_idx = selection.selection.rows[0]
-                selected_row = results_df.iloc[selected_idx]
-                st.session_state.selected_dataset = selected_row.to_dict()
-                st.success(f"Selected: {selected_row['accession']}")
+            previous_selection_index = st.session_state.get("previous_selection_index")
+            if selection and getattr(selection, "selection", None) is not None:
+                if selection.selection.rows:
+                    selected_idx = selection.selection.rows[0]
+                    if selected_idx != previous_selection_index:
+                        st.session_state.previous_selection_index = selected_idx
+                        selected_row = results_df.iloc[selected_idx]
+                        st.session_state.selected_dataset = selected_row.to_dict()
+                        st.success(f"Selected: {selected_row['accession']}")
+                else:
+                    # No rows currently selected; clear previous index so a future selection is detected.
+                    st.session_state.previous_selection_index = None
 
             # Show info about filters applied
             if filter_state.has_any_filter():
@@ -135,7 +160,10 @@ def render_search_tab() -> None:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("Accession", dataset.get("accession", "N/A"))
+            # Accession as clickable link to ENCODE portal
+            accession = dataset.get("accession", "N/A")
+            accession_link = format_accession_as_link(accession)
+            st.markdown(f"**Accession:** {accession_link}")
             st.metric("Assay", dataset.get("assay_term_name", "N/A"))
         with col2:
             st.metric(

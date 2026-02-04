@@ -10,7 +10,12 @@ import streamlit as st
 
 from src.ui.components.initializers import get_api_client, get_filter_manager
 from src.ui.search_filters import FilterState
+from src.ui.vocabularies import get_organism_scientific_name
 from src.utils.spell_check import correct_spelling
+
+# Module-level constants
+FETCH_BUFFER_MULTIPLIER = 5
+MIN_FETCH_COUNT = 200
 
 
 def apply_spell_correction(search_term: str) -> tuple[str, str | None]:
@@ -66,13 +71,7 @@ def execute_search(
     # Map organism key to scientific name for API
     organism_scientific = None
     if filter_state.organism:
-        org_map = {
-            "human": "Homo sapiens",
-            "mouse": "Mus musculus",
-            "fly": "Drosophila melanogaster",
-            "worm": "Caenorhabditis elegans",
-        }
-        organism_scientific = org_map.get(filter_state.organism, filter_state.organism)
+        organism_scientific = get_organism_scientific_name(filter_state.organism)
 
     # Apply spell correction to search terms
     corrected_search = None
@@ -90,7 +89,7 @@ def execute_search(
         target=filter_state.target,
         life_stage=filter_state.age_stage,
         search_term=corrected_search,
-        limit=max(max_results * 5, 200),  # Fetch more for filtering
+        limit=max(max_results * FETCH_BUFFER_MULTIPLIER, MIN_FETCH_COUNT),
     )
 
     # Apply post-filtering for body_part, target, etc.

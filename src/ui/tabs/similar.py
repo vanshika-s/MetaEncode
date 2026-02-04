@@ -5,7 +5,12 @@ import pandas as pd
 import streamlit as st
 
 from src.ui.components.initializers import get_embedding_generator
-from src.ui.formatters import format_organism_display, truncate_text
+from src.ui.formatters import (
+    format_accession_as_link,
+    format_organism_display,
+    get_encode_experiment_url,
+    truncate_text,
+)
 
 
 def render_similar_tab() -> None:
@@ -19,13 +24,14 @@ def render_similar_tab() -> None:
     # Check if we have loaded data
     if st.session_state.metadata_df is None or st.session_state.embeddings is None:
         st.warning(
-            "Please load sample data first using the 'Load Sample Data' button "
-            "in the sidebar."
+            "No data loaded. Please ensure the precomputed cache files exist in data/cache/."
         )
         return
 
     selected = st.session_state.selected_dataset
-    st.write(f"Finding datasets similar to: **{selected.get('accession', 'Unknown')}**")
+    accession = selected.get("accession", "Unknown")
+    accession_link = format_accession_as_link(accession)
+    st.markdown(f"Finding datasets similar to: **{accession_link}**")
 
     # Get filter state
     filter_state = st.session_state.filter_state
@@ -57,6 +63,26 @@ def render_similar_tab() -> None:
                     # Fallback to text-only similarity
                     query_vector = text_embedding
 
+                # Ensure the query vector is compatible with the similarity engine
+                engine_dim = getattr(similarity_engine, "vector_dim", None)
+                if engine_dim is None:
+                    engine_dim = getattr(similarity_engine, "embedding_dim", None)
+
+                if engine_dim is not None:
+                    # Try to determine the dimensionality of the query vector
+                    try:
+                        query_dim = len(query_vector)
+                    except TypeError:
+                        query_dim = getattr(getattr(query_vector, "shape", None), "__getitem__", lambda _i: None)(0)
+
+                    if query_dim is not None and query_dim != engine_dim:
+                        st.error(
+                            "The similarity engine was initialized with embeddings of a "
+                            f"different dimensionality ({engine_dim}) than the current "
+                            f"query vector ({query_dim}). Please reload data so that the "
+                            "similarity engine and query embeddings are consistent."
+                        )
+                        return
                 # Find more similar datasets than requested (for post-filtering)
                 fetch_n = max(top_n * 3, 30)
                 similar_df = similarity_engine.find_similar(
@@ -85,7 +111,7 @@ def render_similar_tab() -> None:
         if not similar.empty:
             st.subheader("Most Similar Datasets")
 
-            # Limit to max_results (no filtering - pure similarity ranking)
+            # Limit display to max_results; similarity ranking already applied (no additional filters)
             display_similar = similar.head(top_n)
 
             # Display columns with proper formatting
@@ -118,6 +144,9 @@ def render_similar_tab() -> None:
                     lambda x: truncate_text(str(x), 60)
                 )
 
+            # Add Portal column with ENCODE URLs for clickable links
+            display_df["Portal"] = display_similar["accession"].apply(get_encode_experiment_url)
+
             # Rename columns for display
             column_labels = {
                 "similarity_score": "Similarity",
@@ -133,12 +162,18 @@ def render_similar_tab() -> None:
                 }
             )
 
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            # Configure Portal column as clickable link showing accession ID
+            column_config = {
+                "Portal": st.column_config.LinkColumn(
+                    "Portal",
+                    display_text=r"experiments/(ENC[^/]+)/",
+                    help="Click to open on ENCODE Portal",
+                ),
+            }
 
-            # Link to ENCODE
-            st.markdown("Click accession numbers to view on ENCODE portal:")
-            for _, row in display_similar.head(5).iterrows():
-                acc = row.get("accession", "")
-                if acc:
-                    url = f"https://www.encodeproject.org/experiments/{acc}/"
-                    st.markdown(f"- [{acc}]({url})")
+            st.dataframe(
+                display_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config=column_config,
+            )

@@ -189,6 +189,16 @@ def render_visualize_tab() -> None:
             ),
         )
 
+        # Outlier filtering option (only for all datasets mode)
+        filter_outliers = False
+        if view_mode == "all_datasets":
+            filter_outliers = st.checkbox(
+                "Filter Outliers",
+                value=False,
+                help="Remove points outside 5th-95th percentile range. "
+                "Disable to show all datasets.",
+            )
+
         # Generate button - different function based on view mode
         can_generate = view_mode == "all_datasets" or similar_available
         if st.button(
@@ -197,7 +207,7 @@ def render_visualize_tab() -> None:
             if view_mode == "similar_only":
                 generate_similar_only_visualization(reduction_method, color_option)
             else:
-                generate_visualization(reduction_method, color_option)
+                generate_visualization(reduction_method, color_option, filter_outliers)
 
     with col1:
         st.subheader("Embedding Space")

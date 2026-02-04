@@ -165,7 +165,10 @@ def render_visualize_tab() -> None:
             ]
             for col in slim_color_columns:
                 if col in st.session_state.metadata_df.columns:
-                    available_colors.insert(-1, col)  # Insert before "lab"
+                    available_colors.append(col)
+            # Add lab at the end if it exists
+            if "lab" in st.session_state.metadata_df.columns:
+                available_colors.append("lab")
 
         # Add similarity_score option if in similar-only mode with available data
         if view_mode == "similar_only" and similar_available:

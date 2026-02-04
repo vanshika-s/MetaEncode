@@ -26,6 +26,10 @@ from src.ui.vocabularies import (
     get_targets,
 )
 
+# Module-level constants
+MAX_CATEGORY_OPTIONS = 20
+MAX_BIOSAMPLE_OPTIONS = 50
+
 
 def render_sidebar() -> dict:
     """Render sidebar with search and filter controls.
@@ -177,7 +181,7 @@ def render_sidebar() -> dict:
     st.session_state.classification_type = classification_type
 
     # Dynamic category selector based on classification type
-    category_data = get_slim_categories(classification_type)[:20]
+    category_data = get_slim_categories(classification_type)[:MAX_CATEGORY_OPTIONS]
     category_options = [""] + [name for name, _ in category_data]
     category_counts = {name: count for name, count in category_data}
     current_bp = st.session_state.filter_state.body_part or ""
@@ -206,7 +210,9 @@ def render_sidebar() -> dict:
     # Tissue / Cell Type (filtered by selected category)
     if body_part:
         # Get biosamples for selected category from JSON
-        biosamples_data = get_biosamples_for_slim(classification_type, body_part)[:50]
+        biosamples_data = get_biosamples_for_slim(classification_type, body_part)[
+            :MAX_BIOSAMPLE_OPTIONS
+        ]
         tissue_options = [""] + [name for name, _ in biosamples_data]
         biosample_counts = {name: count for name, count in biosamples_data}
     else:
@@ -337,16 +343,6 @@ def render_sidebar() -> dict:
     if st.sidebar.button("Clear Filters", use_container_width=True):
         st.session_state.filter_state = FilterState()
         st.rerun()
-
-    st.sidebar.divider()
-
-    # --- Data Loading Section ---
-    st.sidebar.subheader("Data")
-    if st.sidebar.button("Load Sample Data", use_container_width=True):
-        # Import here to avoid circular imports
-        from src.utils.data_loader import load_sample_data
-
-        load_sample_data()
 
     # About section
     st.sidebar.divider()

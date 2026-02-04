@@ -44,7 +44,7 @@ def render_main_content() -> None:
         render_similar_tab()
 
     with tab_visualize:
-        render_visualize_tab()  # Comment out to disable visualization
+        render_visualize_tab()
 
 
 def main() -> None:

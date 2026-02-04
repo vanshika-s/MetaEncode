@@ -52,6 +52,18 @@ def get_filter_manager() -> SearchFilterManager:
     return SearchFilterManager()
 
 
+# Required columns for proper metadata display (especially organ in tooltips)
+REQUIRED_METADATA_COLUMNS = {
+    "accession",
+    "organ",
+    "cell_type",
+    "assay_term_name",
+    "organism",
+    "description",
+    "biosample_term_name",
+}
+
+
 @st.cache_data
 def load_cached_data(
     _cache_mgr: CacheManager,
@@ -73,6 +85,16 @@ def load_cached_data(
     if _cache_mgr.exists("metadata") and _cache_mgr.exists("embeddings"):
         metadata = _cache_mgr.load("metadata")
         embeddings = _cache_mgr.load("embeddings")
+
+        # Re-process metadata if required columns are missing (e.g., organ, cell_type)
+        if metadata is not None:
+            existing_cols = set(metadata.columns)
+            missing_cols = REQUIRED_METADATA_COLUMNS - existing_cols
+            if missing_cols:
+                processor = MetadataProcessor()
+                metadata = processor.process(metadata)
+                _cache_mgr.save("metadata", metadata)
+                st.toast(f"Updated cached metadata with: {', '.join(sorted(missing_cols))}")
 
         # Try to load combined vectors and combiner (Phase 2 data)
         combined_vectors = None

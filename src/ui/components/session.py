@@ -7,6 +7,8 @@ variables used throughout the application.
 
 import streamlit as st
 
+from src.ml.similarity import SimilarityEngine
+from src.ui.components.initializers import get_cache_manager, load_cached_data
 from src.ui.search_filters import FilterState
 
 # Default values for session state
@@ -20,7 +22,11 @@ SESSION_DEFAULTS: dict = {
     "combined_vectors": None,
     "feature_combiner": None,
     "similarity_engine": None,
+    # Visualization state
     "coords_2d": None,
+    "viz_metadata": None,
+    "viz_reduction_method": None,  # Method used to generate coords_2d
+    "viz_mode": "all_datasets",  # "all_datasets" or "similar_only"
     # New filter state using FilterState dataclass
     "filter_state": FilterState(),
     # Legacy filter_settings for backward compatibility
@@ -38,11 +44,16 @@ def init_session_state() -> None:
     Sets default values for all session state keys if they don't already exist.
     This should be called at the start of each Streamlit run.
     """
+    # Avoid re-initializing session state on every rerun
+    if st.session_state.get("_initialized", False):
+        return
+
     for key, value in SESSION_DEFAULTS.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-
+    # Mark session state as initialized
+    st.session_state["_initialized"] = True
 def load_cached_data_into_session() -> bool:
     """Load precomputed data from cache into session state.
 
@@ -56,10 +67,6 @@ def load_cached_data_into_session() -> bool:
     # Skip if already loaded
     if st.session_state.metadata_df is not None:
         return False
-
-    # Import here to avoid circular imports
-    from src.ml.similarity import SimilarityEngine
-    from src.ui.components.initializers import get_cache_manager, load_cached_data
 
     cache_mgr = get_cache_manager()
     cached_meta, cached_emb, cached_combined, cached_combiner = load_cached_data(

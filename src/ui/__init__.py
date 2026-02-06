@@ -1,7 +1,29 @@
 # src/ui/__init__.py
-"""UI components and utilities for MetaENCODE."""
+"""UI components and utilities for MetaENCODE.
 
-from src.ui.search_filters import SearchFilterManager
+Note: Some modules are NOT imported at the top level to avoid circular imports.
+Import directly when needed:
+    - from src.ui.components.initializers import get_cache_manager, ...
+    - from src.ui.components.session import init_session_state
+    - from src.ui.sidebar import render_sidebar
+    - from src.ui.handlers import execute_search, ...
+    - from src.ui.tabs import render_search_tab, render_similar_tab, render_visualize_tab
+    - from src.ui.formatters import format_organism_display, truncate_text
+"""
+
+# Autocomplete provider (uses spell check if available)
+from src.ui.autocomplete import (
+    AutocompleteProvider,
+    AutocompleteSuggestion,
+    create_assay_search_fn,
+    create_biosample_search_fn,
+    create_lab_search_fn,
+    create_organ_search_fn,
+    create_organism_search_fn,
+    create_target_search_fn,
+    get_autocomplete_provider,
+)
+from src.ui.search_filters import FilterState, SearchFilterManager
 from src.ui.vocabularies import (
     ASSAY_TYPES,
     BODY_PARTS,
@@ -17,7 +39,10 @@ from src.ui.vocabularies import (
 )
 
 __all__ = [
-    #"SearchFilterManager",
+    # Search filters
+    "FilterState",
+    "SearchFilterManager",
+    # Vocabularies
     "ASSAY_TYPES",
     "ORGANISM_ASSEMBLIES",
     "ORGANISMS",

@@ -14,18 +14,39 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+
+
+# Diverging colorscale for similarity scores (more intermediate stops)
+SIMILARITY_COLORSCALE = [
+    [0.0, "rgb(179, 88, 6)"],     # Dark orange (lowest)
+    [0.15, "rgb(224, 130, 20)"],  # Orange
+    [0.3, "rgb(253, 184, 99)"],   # Light orange
+    [0.45, "rgb(254, 224, 182)"], # Pale orange
+    [0.5, "rgb(247, 247, 247)"],  # White (mid)
+    [0.55, "rgb(216, 218, 235)"], # Pale purple
+    [0.7, "rgb(158, 154, 200)"],  # Light purple
+    [0.85, "rgb(106, 81, 163)"],  # Purple
+    [1.0, "rgb(63, 0, 125)"],     # Dark purple (highest)
+]
 
 
 class DimensionalityReducer:
     """Reduce high-dimensional embeddings to 2D for visualization.
 
-    Supports UMAP and PCA for dimensionality reduction. UMAP generally
+    Supports UMAP, PCA, and t-SNE for dimensionality reduction. UMAP generally
     preserves local structure better, while PCA is faster and deterministic.
+    t-SNE often produces better local structure than UMAP for visualization.
+
+    Note: Filtering (outlier removal) should be performed upstream before
+    passing embeddings to this class. This ensures metadata stays synchronized.
 
     Example:
         >>> reducer = DimensionalityReducer(method="umap")
         >>> coords_2d = reducer.fit_transform(embeddings)
     """
+
+    SUPPORTED_METHODS = ("umap", "pca", "t-sne")
 
     def __init__(
         self,
@@ -36,15 +57,56 @@ class DimensionalityReducer:
         """Initialize the dimensionality reducer.
 
         Args:
-            method: Reduction method ("umap" or "pca").
+            method: Reduction method ("umap", "pca", or "t-sne").
             n_components: Number of dimensions (default 2 for plotting).
             random_state: Random seed for reproducibility.
         """
-        self.method = method
+        self.method = method.lower()
         self.n_components = n_components
         self.random_state = random_state
         self._reducer: Optional[Any] = None
         self._fitted = False
+        self.variance_ratio_: Optional[tuple[float, ...]] = None
+
+    def _create_reducer(self, n_samples: int) -> None:
+        """Initialize the reducer based on method.
+
+        Args:
+            n_samples: Number of samples (used to adjust UMAP n_neighbors
+                and t-SNE perplexity for small datasets).
+        """
+        if self.method == "umap":
+            import umap
+
+            n_neighbors = max(2, min(15, n_samples - 1))
+            self._reducer = umap.UMAP(
+                n_components=self.n_components,
+                random_state=self.random_state,
+                n_neighbors=n_neighbors,
+                min_dist=0.1,
+                metric="cosine",
+            )
+        elif self.method == "pca":
+            self._reducer = PCA(
+                n_components=self.n_components,
+                random_state=self.random_state,
+            )
+        elif self.method == "t-sne":
+            # Perplexity must be less than n_samples; sklearn default is 30
+            # Use similar adaptive logic as UMAP's n_neighbors
+            perplexity = min(30, max(5, n_samples - 1))
+            if n_samples <= 5:
+                perplexity = max(2, n_samples - 1)
+            self._reducer = TSNE(
+                n_components=self.n_components,
+                random_state=self.random_state,
+                perplexity=perplexity,
+            )
+        else:
+            raise ValueError(
+                f"Unknown method: {self.method}. "
+                f"Use one of: {', '.join(self.SUPPORTED_METHODS)}."
+            )
 
     def fit(self, embeddings: np.ndarray) -> "DimensionalityReducer":
         """Fit the reducer to the embeddings.
@@ -54,33 +116,14 @@ class DimensionalityReducer:
 
         Returns:
             Self for method chaining.
+
+        Note:
+            For t-SNE, fit() is supported but transform() is not available.
+            Use fit_transform() for t-SNE workflows.
         """
         embeddings = np.asarray(embeddings, dtype=np.float32)
-
-        if self.method == "umap":
-            import umap
-
-            # Adjust n_neighbors based on sample size
-            n_neighbors = min(15, len(embeddings) - 1)
-            n_neighbors = max(2, n_neighbors)  # At least 2
-
-            self._reducer = umap.UMAP(
-                n_components=self.n_components,
-                random_state=self.random_state,
-                n_neighbors=n_neighbors,
-                min_dist=0.1,
-                metric="cosine",
-            )
-
-        elif self.method == "pca":
-            self._reducer = PCA(
-                n_components=self.n_components,
-                random_state=self.random_state,
-            )
-
-        else:
-            raise ValueError(f"Unknown method: {self.method}. Use 'umap' or 'pca'.")
-
+        self._create_reducer(len(embeddings))
+        assert self._reducer is not None  # Guaranteed by _create_reducer
         self._reducer.fit(embeddings)
         self._fitted = True
         return self
@@ -93,9 +136,19 @@ class DimensionalityReducer:
 
         Returns:
             NumPy array of shape (n_samples, n_components).
+
+        Raises:
+            ValueError: If reducer not fitted or if t-SNE (which lacks transform).
         """
         if not self._fitted or self._reducer is None:
             raise ValueError("Reducer has not been fitted. Call fit() first.")
+
+        if self.method == "t-sne":
+            raise ValueError(
+                "t-SNE does not support transform() for out-of-sample data. "
+                "Use fit_transform() instead, or consider UMAP for workflows "
+                "requiring separate fit/transform."
+            )
 
         embeddings = np.asarray(embeddings, dtype=np.float32)
         result: np.ndarray = self._reducer.transform(embeddings)
@@ -111,32 +164,20 @@ class DimensionalityReducer:
             NumPy array of shape (n_samples, n_components).
         """
         embeddings = np.asarray(embeddings, dtype=np.float32)
-
-        if self.method == "umap":
-            import umap
-
-            n_neighbors = min(15, len(embeddings) - 1)
-            n_neighbors = max(2, n_neighbors)
-
-            self._reducer = umap.UMAP(
-                n_components=self.n_components,
-                random_state=self.random_state,
-                n_neighbors=n_neighbors,
-                min_dist=0.1,
-                metric="cosine",
-            )
-
-        elif self.method == "pca":
-            self._reducer = PCA(
-                n_components=self.n_components,
-                random_state=self.random_state,
-            )
-
-        else:
-            raise ValueError(f"Unknown method: {self.method}. Use 'umap' or 'pca'.")
-
+        self._create_reducer(len(embeddings))
+        assert self._reducer is not None  # Guaranteed by _create_reducer
         self._fitted = True
+
         result: np.ndarray = self._reducer.fit_transform(embeddings)
+
+        # Store variance ratio for PCA (useful for axis labels)
+        if self.method == "pca":
+            self.variance_ratio_ = tuple(
+                self._reducer.explained_variance_ratio_[: self.n_components]
+            )
+        else:
+            self.variance_ratio_ = None
+
         return result.astype(np.float32)
 
 
@@ -177,15 +218,17 @@ class PlotGenerator:
         color_by: Optional[str] = None,
         title: str = "Dataset Embeddings",
         highlight_indices: Optional[list[int]] = None,
+        variance_ratio: Optional[tuple[float, float]] = None,
     ) -> go.Figure:
         """Create interactive scatter plot of dataset embeddings.
 
         Args:
             coords: 2D coordinates from dimensionality reduction (n_samples, 2).
             metadata: DataFrame with dataset metadata for tooltips.
-            color_by: Column name to color points by (categorical).
+            color_by: Column name to color points by (categorical or continuous).
             title: Plot title.
             highlight_indices: Indices of points to highlight with markers.
+            variance_ratio: Tuple of (PC1_variance, PC2_variance) for PCA axis labels.
 
         Returns:
             Plotly Figure object.
@@ -195,36 +238,67 @@ class PlotGenerator:
         plot_df["x"] = coords[:, 0]
         plot_df["y"] = coords[:, 1]
 
-        # Determine hover columns
-        hover_cols = [c for c in self.DEFAULT_HOVER_COLS if c in plot_df.columns]
-
         # Truncate long descriptions for hover
         if "description" in plot_df.columns:
             plot_df["description_short"] = plot_df["description"].apply(
                 lambda x: (str(x)[:100] + "...") if len(str(x)) > 100 else str(x)
             )
-            hover_cols = [
-                "description_short" if c == "description" else c for c in hover_cols
-            ]
 
-        # Create scatter plot
+        # Build customdata for hovertemplate (no x/y values shown)
+        customdata_cols = ["accession", "description_short", "assay_term_name", "organism", "organ"]
+
+        # Fill missing columns with empty strings
+        for col in customdata_cols:
+            if col not in plot_df.columns:
+                plot_df[col] = ""
+
+        # Build hovertemplate (excludes x/y coordinates and non-clickable URL)
+        # Users can click accession IDs in tables to access ENCODE portal
+        hovertemplate = (
+            "<b>%{customdata[0]}</b><br>"
+            "%{customdata[1]}<br>"
+            "<b>Assay:</b> %{customdata[2]}<br>"
+            "<b>Organism:</b> %{customdata[3]}<br>"
+            "<b>Organ:</b> %{customdata[4]}"
+            "<extra></extra>"
+        )
+
+        # Create scatter plot with appropriate colorscale
+        is_similarity = color_by == "similarity_score" and color_by in plot_df.columns
+
         if color_by and color_by in plot_df.columns:
-            fig = px.scatter(
-                plot_df,
-                x="x",
-                y="y",
-                color=color_by,
-                hover_data=hover_cols,
-                title=title,
-            )
+            if is_similarity:
+                # Use orange-to-blue colorscale for similarity scores
+                fig = px.scatter(
+                    plot_df,
+                    x="x",
+                    y="y",
+                    color=color_by,
+                    color_continuous_scale=SIMILARITY_COLORSCALE,
+                    title=title,
+                )
+            else:
+                fig = px.scatter(
+                    plot_df,
+                    x="x",
+                    y="y",
+                    color=color_by,
+                    title=title,
+                )
         else:
             fig = px.scatter(
                 plot_df,
                 x="x",
                 y="y",
-                hover_data=hover_cols,
                 title=title,
             )
+
+        # Apply customdata and hovertemplate to all traces
+        customdata_array = plot_df[customdata_cols].values
+        for trace in fig.data:
+            if hasattr(trace, "customdata"):
+                trace.customdata = customdata_array
+                trace.hovertemplate = hovertemplate
 
         # Add highlight markers if specified
         if highlight_indices:
@@ -245,11 +319,26 @@ class PlotGenerator:
                 )
             )
 
-        # Update axis labels
-        axis_prefix = "UMAP" if self.reduction_method == "umap" else "PC"
+        # Update axis labels based on reduction method and variance
+        method_lower = self.reduction_method.lower()
+        if method_lower == "umap":
+            x_title = "UMAP-1"
+            y_title = "UMAP-2"
+        elif method_lower == "t-sne":
+            x_title = "t-SNE-1"
+            y_title = "t-SNE-2"
+        else:
+            # PCA: include variance percentages if available
+            if variance_ratio is not None and len(variance_ratio) >= 2:
+                x_title = f"PC-1 ({variance_ratio[0]:.1%} variance)"
+                y_title = f"PC-2 ({variance_ratio[1]:.1%} variance)"
+            else:
+                x_title = "PC-1"
+                y_title = "PC-2"
+
         fig.update_layout(
-            xaxis_title=f"{axis_prefix}-1",
-            yaxis_title=f"{axis_prefix}-2",
+            xaxis_title=x_title,
+            yaxis_title=y_title,
             legend_title=color_by if color_by else "Dataset",
             hovermode="closest",
         )
@@ -277,7 +366,7 @@ class PlotGenerator:
                 z=similarity_matrix,
                 x=labels,
                 y=labels,
-                colorscale="Viridis",
+                colorscale=SIMILARITY_COLORSCALE,
                 colorbar=dict(title="Similarity"),
                 hoverongaps=False,
             )
@@ -291,3 +380,33 @@ class PlotGenerator:
         )
 
         return fig
+
+
+
+def percentile_range_filtering(
+    embeddings: np.ndarray,
+    lower: float = 5.0,
+    upper: float = 95.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Filter embeddings to central percentile range.
+
+    Removes samples with any feature outside the specified percentile bounds.
+    Returns both filtered embeddings and a boolean mask for synchronizing
+    with associated metadata.
+
+    Args:
+        embeddings: Input array of shape (n_samples, n_features).
+        lower: Lower percentile bound (default 5).
+        upper: Upper percentile bound (default 95).
+
+    Returns:
+        Tuple of (filtered_embeddings, boolean_mask) where mask indicates
+        which rows were kept.
+    """
+    lower_bound = np.percentile(embeddings, lower, axis=0)
+    upper_bound = np.percentile(embeddings, upper, axis=0)
+
+    in_range = (embeddings >= lower_bound) & (embeddings <= upper_bound)
+    mask: np.ndarray = np.asarray(in_range.all(axis=1))
+
+    return embeddings[mask], mask

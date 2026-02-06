@@ -3,15 +3,20 @@
 
 from .cache import CacheManager
 
+# Note: data_loader is intentionally not imported here to avoid circular imports
+# and to keep data loading separate from the core utils package. Import any
+# data loading functionality directly from its own module in the UI or
+# application layer as needed, rather than exposing it via src.utils.
+
 # Lazy imports for optional spell check module
 # (requires symspellpy and jellyfish)
 try:
     from .spell_check import (
-        VocabularySpellChecker,
         SpellingSuggestion,
+        VocabularySpellChecker,
+        correct_spelling,
         get_spell_checker,
         suggest_correction,
-        correct_spelling,
     )
 
     _SPELL_CHECK_AVAILABLE = True

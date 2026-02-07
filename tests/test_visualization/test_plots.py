@@ -372,25 +372,20 @@ class TestPlotGeneratorSimilarityHeatmap:
         fig = plotter.similarity_heatmap(sample_similarity_matrix, labels)
         assert isinstance(fig, go.Figure)
 
-    def test_similarity_heatmap_uses_viridis_colorscale(
+    def test_similarity_heatmap_uses_diverging_colorscale(
         self, sample_similarity_matrix: np.ndarray
     ):
-        """Test that heatmap uses Viridis colorscale (identified by colors)."""
+        """Test that heatmap uses the custom diverging orange-to-purple colorscale."""
         plotter = PlotGenerator()
         labels = ["A", "B", "C", "D", "E"]
         fig = plotter.similarity_heatmap(sample_similarity_matrix, labels)
-        # Plotly may expand "Viridis" to tuple format with hex colors
-        # Viridis starts with dark purple (#440154) and ends with yellow (#fde725)
         colorscale = fig.data[0].colorscale
-        if isinstance(colorscale, str):
-            assert colorscale == "Viridis"
-        else:
-            # Check it's a tuple of (position, color) pairs
-            assert len(colorscale) > 0
-            # First color should be dark purple (Viridis start)
-            assert "#440154" in str(colorscale[0])
-            # Last color should be yellow (Viridis end)
-            assert "#fde725" in str(colorscale[-1])
+        # Should be a list/tuple of (position, color) pairs
+        assert len(colorscale) > 0
+        # First color should be dark orange (lowest similarity)
+        assert "rgb(179, 88, 6)" in str(colorscale[0])
+        # Last color should be dark purple (highest similarity)
+        assert "rgb(63, 0, 125)" in str(colorscale[-1])
 
     def test_similarity_heatmap_labels_applied(
         self, sample_similarity_matrix: np.ndarray

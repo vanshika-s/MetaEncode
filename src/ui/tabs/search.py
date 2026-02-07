@@ -52,8 +52,8 @@ def render_search_tab() -> None:
                     lambda x: truncate_text(str(x), 80)
                 )
 
-            # Add Portal column with ENCODE URLs for clickable links
-            display_df["Portal"] = results_df["accession"].apply(get_encode_experiment_url)
+            # Replace accession values with ENCODE URLs for clickable links
+            display_df["accession"] = results_df["accession"].apply(get_encode_experiment_url)
 
             # Rename columns for display
             column_labels = {
@@ -69,10 +69,10 @@ def render_search_tab() -> None:
                 }
             )
 
-            # Configure Portal column as clickable link showing accession ID
+            # Configure Accession column as clickable link showing accession ID
             column_config = {
-                "Portal": st.column_config.LinkColumn(
-                    "Portal",
+                "Accession": st.column_config.LinkColumn(
+                    "Accession",
                     display_text=r"experiments/(ENC[^/]+)/",
                     help="Click to open on ENCODE Portal",
                 ),

@@ -238,6 +238,10 @@ class PlotGenerator:
         plot_df["x"] = coords[:, 0]
         plot_df["y"] = coords[:, 1]
 
+        # Jitter data to separate
+        jitter_amount = (plot_df['x'].max()-plot_df['x'].min())/50;
+        plot_df['x'] = plot_df['x']+np.random.uniform(-jitter_amount, jitter_amount, size=len(plot_df['x']));
+
         # Truncate long descriptions for hover
         if "description" in plot_df.columns:
             plot_df["description_short"] = plot_df["description"].apply(

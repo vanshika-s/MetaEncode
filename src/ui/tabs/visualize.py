@@ -7,11 +7,72 @@ a teammate's implementation.
 
 import streamlit as st
 
+from src.ui.components.initializers import get_cache_manager
 from src.visualization.plots import (
     DimensionalityReducer,
     PlotGenerator,
     percentile_range_filtering,
 )
+
+# Cache key prefix must match scripts/precompute_visualizations.py
+_VIZ_CACHE_PREFIX = "viz_coords"
+
+
+def _viz_cache_key(method: str, filtered: bool) -> str:
+    """Build cache key for precomputed visualization coordinates."""
+    suffix = "filtered" if filtered else "unfiltered"
+    return f"{_VIZ_CACHE_PREFIX}_{method.replace('-', '_')}_{suffix}"
+
+
+def _try_load_precomputed(
+    method: str, filter_outliers: bool
+) -> bool:
+    """Attempt to load precomputed visualization coordinates from cache.
+
+    If precomputed data exists for the given method and filter setting,
+    loads the 2D coordinates and associated metadata into session state.
+
+    Args:
+        method: Dimensionality reduction method ('pca', 'umap', or 't-sne').
+        filter_outliers: Whether the outlier-filtered variant is requested.
+
+    Returns:
+        True if precomputed data was loaded, False otherwise.
+    """
+    cache_mgr = get_cache_manager()
+    key = _viz_cache_key(method, filter_outliers)
+    cached = cache_mgr.load(key)
+
+    if cached is None:
+        return False
+
+    coords_2d = cached["coords_2d"]
+    variance_ratio = cached.get("variance_ratio")
+
+    metadata_df = st.session_state.metadata_df
+
+    if filter_outliers:
+        # Load the filter mask to reconstruct the filtered metadata
+        filter_mask = cache_mgr.load(f"{_VIZ_CACHE_PREFIX}_filter_mask")
+        if filter_mask is not None:
+            filtered_metadata = metadata_df[filter_mask].reset_index(drop=True)
+        else:
+            # Fallback: recompute the mask
+            _, mask = percentile_range_filtering(st.session_state.embeddings)
+            filtered_metadata = metadata_df[mask].reset_index(drop=True)
+    else:
+        filtered_metadata = metadata_df
+
+    # Validate that coords match metadata length
+    if len(coords_2d) != len(filtered_metadata):
+        return False
+
+    st.session_state.coords_2d = coords_2d
+    st.session_state.viz_metadata = filtered_metadata
+    st.session_state.viz_reduction_method = method
+    st.session_state.viz_mode = "all_datasets"
+    st.session_state.viz_variance_ratio = variance_ratio
+    return True
 
 
 def generate_visualization(
@@ -19,11 +80,19 @@ def generate_visualization(
 ) -> None:
     """Generate 2D visualization of embeddings.
 
+    For all-datasets mode, tries to load precomputed coordinates first.
+    Falls back to on-the-fly computation if precomputed data is unavailable.
+
     Args:
         method: Dimensionality reduction method ('pca', 'umap', or 't-sne').
         color_by: Column to color points by.
         filter_outliers: Whether to filter outliers using percentile range.
     """
+    # Try precomputed cache first (instant load)
+    if _try_load_precomputed(method, filter_outliers):
+        return
+
+    # Fall back to on-the-fly computation
     with st.spinner(f"Computing {method.upper()} projection..."):
         try:
             embeddings = st.session_state.embeddings
@@ -201,6 +270,13 @@ def render_visualize_tab() -> None:
                 help="Remove points outside 5th-95th percentile range. "
                 "Disable to show all datasets.",
             )
+
+        # Show precomputed status hint for all-datasets mode
+        if view_mode == "all_datasets":
+            cache_mgr = get_cache_manager()
+            key = _viz_cache_key(reduction_method, filter_outliers)
+            if cache_mgr.exists(key):
+                st.caption("Precomputed - will load instantly")
 
         # Generate button - different function based on view mode
         can_generate = view_mode == "all_datasets" or similar_available

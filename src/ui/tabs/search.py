@@ -14,7 +14,39 @@ from src.ui.formatters import (
 
 def render_search_tab() -> None:
     """Render the search and selection tab."""
-    st.header("Search & Select Dataset")
+    st.markdown(
+        """
+        <style>
+        .search-title {
+            font-size: 1.9rem;
+            font-weight: 650;
+            margin-bottom: 0.25rem;
+        }
+
+        .search-subtitle {
+            font-size: 1.35rem;
+            font-   weight: 600;
+            margin-top: 1.75rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .search-helper {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #666;
+            margin-top: 1.2rem;
+            margin-bottom: 0.3rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    st.markdown(
+        "<div class='search-title'>Search & Select Dataset</div>",
+        unsafe_allow_html=True,
+    )
+    
 
     # Get current filter state
     filter_state = st.session_state.filter_state
@@ -25,7 +57,10 @@ def render_search_tab() -> None:
         results_df = st.session_state.search_results
 
         if not results_df.empty:
-            st.subheader(f"Search Results ({len(results_df)} datasets)")
+            st.markdown(
+                f"<div class='search-subtitle'>Search Results ({len(results_df)} datasets)</div>",
+                unsafe_allow_html=True,
+            )
 
             # Display as interactive table with formatted columns
             display_cols = [
@@ -130,7 +165,11 @@ def render_search_tab() -> None:
     st.divider()
 
     # Manual accession input
-    st.subheader("Or enter an accession directly")
+    st.markdown(
+        "<div class='search-subtitle'>Or enter an accession directly</div>",
+        unsafe_allow_html=True,
+    )
+    
     accession = st.text_input(
         "ENCODE Accession",
         placeholder="e.g., ENCSR000AKS",
@@ -153,9 +192,13 @@ def render_search_tab() -> None:
             st.warning("Please enter an accession number")
 
     # Display selected dataset
+    
     if st.session_state.selected_dataset is not None:
         st.divider()
-        st.subheader("Selected Dataset")
+        st.markdown(
+            "<div class='search-subtitle'>Selected Dataset</div>",
+            unsafe_allow_html=True,
+        )
         dataset = st.session_state.selected_dataset
 
         col1, col2 = st.columns(2)
@@ -174,3 +217,4 @@ def render_search_tab() -> None:
 
         with st.expander("Full Metadata"):
             st.json(dataset)
+

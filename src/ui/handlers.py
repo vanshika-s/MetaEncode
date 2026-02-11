@@ -113,7 +113,7 @@ def execute_search(
     return results, spell_correction_msg
 
 
-def handle_search_click(filter_state: FilterState, max_results: int) -> None:
+def handle_search_click(filter_state: FilterState) -> None:
     """Handle search button click event.
 
     Updates session state with search results and displays status messages.
@@ -122,13 +122,16 @@ def handle_search_click(filter_state: FilterState, max_results: int) -> None:
         filter_state: Current filter state.
         max_results: Maximum results to return.
     """
+    filter_state.max_results = st.session_state.filter_max_results
+
+
     if not filter_state.has_any_filter():
         st.sidebar.warning("Please set at least one filter")
         return
 
     with st.spinner("Searching ENCODE..."):
         try:
-            results, spell_msg = execute_search(filter_state, max_results)
+            results, spell_msg = execute_search(filter_state, st.session_state.filter_max_results)
             st.session_state.search_results = results
             if spell_msg:
                 st.sidebar.info(spell_msg)

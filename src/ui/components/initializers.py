@@ -5,6 +5,9 @@ This module provides Streamlit-cached singletons for all major components
 used in the application: API clients, ML models, and data processors.
 """
 
+import shutil
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
@@ -14,6 +17,32 @@ from src.ml.feature_combiner import FeatureCombiner
 from src.processing.metadata import MetadataProcessor
 from src.ui.search_filters import SearchFilterManager
 from src.utils.cache import CacheManager
+from src.utils.history import SelectionHistory
+from src.utils.user_id import get_or_create_user_id
+
+_HISTORY_SESSION_KEY = "_selection_history_instance"
+
+
+def get_selection_history() -> SelectionHistory:
+    """Get or create a per-user selection history manager.
+
+    Each browser gets its own history file, namespaced by a cookie-based
+    user ID, and cached in session state (not globally).
+    """
+    if _HISTORY_SESSION_KEY in st.session_state:
+        return st.session_state[_HISTORY_SESSION_KEY]
+
+    user_id = get_or_create_user_id()
+    user_path = Path(f"data/cache/selection_history_{user_id}.json")
+
+    # One-time migration: seed new per-user file from the old shared file
+    shared_path = SelectionHistory.DEFAULT_PATH
+    if not user_path.exists() and shared_path.exists():
+        shutil.copy2(shared_path, user_path)
+
+    instance = SelectionHistory(path=str(user_path))
+    st.session_state[_HISTORY_SESSION_KEY] = instance
+    return instance
 
 
 @st.cache_resource

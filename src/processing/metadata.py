@@ -41,7 +41,7 @@ class MetadataProcessor:
         "lab",
         "life_stage",
     ]
-    NUMERIC_FIELDS = ["replicate_count", "file_count"]
+    NUMERIC_FIELDS = ["replicate_count", "bio_replicate_count", "tech_replicate_count", "file_count"]
 
     # Required fields for a valid record
     REQUIRED_FIELDS = ["accession"]

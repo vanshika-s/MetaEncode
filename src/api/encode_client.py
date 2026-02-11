@@ -308,6 +308,19 @@ class EncodeClient:
                     if isinstance(biosample, dict):
                         life_stage = str(biosample.get("life_stage", "") or "")
 
+        # Count biological vs technical replicates
+        bio_rep_numbers: set = set()
+        for rep in replicates:
+            if isinstance(rep, dict):
+                bio_num = rep.get("biological_replicate_number")
+                if bio_num is not None:
+                    bio_rep_numbers.add(bio_num)
+
+        bio_replicate_count = (
+            len(bio_rep_numbers) if bio_rep_numbers else len(replicates)
+        )
+        tech_replicate_count = max(0, len(replicates) - bio_replicate_count)
+
         return {
             "accession": data.get("accession", ""),
             "description": data.get("description", ""),
@@ -319,5 +332,7 @@ class EncodeClient:
             "lab": lab,
             "status": data.get("status", ""),
             "replicate_count": len(replicates),
+            "bio_replicate_count": bio_replicate_count,
+            "tech_replicate_count": tech_replicate_count,
             "file_count": len(data.get("files", [])),
         }

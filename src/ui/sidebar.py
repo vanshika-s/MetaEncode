@@ -305,6 +305,26 @@ def render_sidebar() -> dict:
             key="filter_min_replicates",
         )
 
+        # 9. Min biological replicates
+        min_bio_replicates = st.number_input(
+            "Min biological replicates",
+            min_value=0,
+            max_value=10,
+            value=st.session_state.filter_state.min_bio_replicates,
+            help="Unique biological samples (donors, cell cultures)",
+            key="filter_min_bio_replicates",
+        )
+
+        # 10. Min technical replicates
+        min_tech_replicates = st.number_input(
+            "Min technical replicates",
+            min_value=0,
+            max_value=10,
+            value=st.session_state.filter_state.min_tech_replicates,
+            help="Extra technical replicates (same sample, different library preps)",
+            key="filter_min_tech_replicates",
+        )
+
     st.sidebar.divider()
 
     # --- Build Filter State ---
@@ -317,6 +337,8 @@ def render_sidebar() -> dict:
         age_stage=age_stage if age_stage else None,
         lab=lab if lab else None,
         min_replicates=int(min_replicates),
+        min_bio_replicates=int(min_bio_replicates),
+        min_tech_replicates=int(min_tech_replicates),
         max_results=max_results,
         description_search=description_search if description_search else None,
     )

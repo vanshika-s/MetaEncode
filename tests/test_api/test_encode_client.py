@@ -353,3 +353,95 @@ class TestParseExperimentEdgeCases:
         data = {"organism": "human"}
         result = client._parse_experiment(data)
         assert result["organism"] == "human"
+
+
+# ============================================================================
+# Bio/Tech Replicate Extraction Tests
+# ============================================================================
+
+
+class TestBioTechReplicateCounts:
+    """Tests for biological and technical replicate count extraction."""
+
+    def test_embedded_replicates_bio_tech_counts(
+        self, sample_experiment_embedded_replicates
+    ):
+        """Embedded replicate dicts produce correct bio/tech counts."""
+        client = EncodeClient()
+        result = client._parse_experiment(sample_experiment_embedded_replicates)
+        # 3 replicates: bio 1 (tech 1,2), bio 2 (tech 1) -> 2 bio, 1 tech
+        assert result["bio_replicate_count"] == 2
+        assert result["tech_replicate_count"] == 1
+        assert result["replicate_count"] == 3
+
+    def test_string_replicates_fallback(self):
+        """String replicates (non-embedded) fall back to len(replicates) for bio."""
+        client = EncodeClient()
+        data = {
+            "replicates": ["/replicates/1/", "/replicates/2/"],
+            "files": [],
+        }
+        result = client._parse_experiment(data)
+        assert result["bio_replicate_count"] == 2
+        assert result["tech_replicate_count"] == 0
+
+    def test_empty_replicates(self):
+        """Empty replicates list produces zero counts."""
+        client = EncodeClient()
+        data = {"replicates": [], "files": []}
+        result = client._parse_experiment(data)
+        assert result["bio_replicate_count"] == 0
+        assert result["tech_replicate_count"] == 0
+
+    def test_no_replicates_key(self):
+        """Missing replicates key produces zero counts."""
+        client = EncodeClient()
+        data = {"files": []}
+        result = client._parse_experiment(data)
+        assert result["bio_replicate_count"] == 0
+        assert result["tech_replicate_count"] == 0
+
+    def test_mixed_embedded_and_string_replicates(self):
+        """Mixed embedded dict and string replicates."""
+        client = EncodeClient()
+        data = {
+            "replicates": [
+                {"biological_replicate_number": 1},
+                "/replicates/2/",
+            ],
+            "files": [],
+        }
+        result = client._parse_experiment(data)
+        # Only 1 embedded dict with bio number, so bio=1, tech = 2-1 = 1
+        assert result["bio_replicate_count"] == 1
+        assert result["tech_replicate_count"] == 1
+
+    def test_missing_bio_number_in_dict(self):
+        """Replicate dicts without biological_replicate_number."""
+        client = EncodeClient()
+        data = {
+            "replicates": [
+                {"technical_replicate_number": 1},
+                {"technical_replicate_number": 2},
+            ],
+            "files": [],
+        }
+        result = client._parse_experiment(data)
+        # No bio numbers found -> falls back to len(replicates)
+        assert result["bio_replicate_count"] == 2
+        assert result["tech_replicate_count"] == 0
+
+    def test_all_same_bio_number(self):
+        """All replicates share the same biological_replicate_number (all technical)."""
+        client = EncodeClient()
+        data = {
+            "replicates": [
+                {"biological_replicate_number": 1, "technical_replicate_number": 1},
+                {"biological_replicate_number": 1, "technical_replicate_number": 2},
+                {"biological_replicate_number": 1, "technical_replicate_number": 3},
+            ],
+            "files": [],
+        }
+        result = client._parse_experiment(data)
+        assert result["bio_replicate_count"] == 1
+        assert result["tech_replicate_count"] == 2

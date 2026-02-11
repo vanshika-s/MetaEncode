@@ -102,6 +102,8 @@ def execute_search(
             # age_stage excluded - API already filtered by life_stage
             lab=filter_state.lab,
             min_replicates=filter_state.min_replicates,
+            min_bio_replicates=filter_state.min_bio_replicates,
+            min_tech_replicates=filter_state.min_tech_replicates,
             description_search=filter_state.description_search,
         )
         if post_filter_state.has_any_filter():

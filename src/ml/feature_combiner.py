@@ -52,6 +52,8 @@ class FeatureCombiner:
 
     NUMERIC_COLUMNS: list[str] = [
         "replicate_count",
+        "bio_replicate_count",
+        "tech_replicate_count",
         "file_count",
     ]
 

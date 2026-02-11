@@ -14,6 +14,13 @@ from src.ml.feature_combiner import FeatureCombiner
 from src.processing.metadata import MetadataProcessor
 from src.ui.search_filters import SearchFilterManager
 from src.utils.cache import CacheManager
+from src.utils.history import SelectionHistory
+
+
+@st.cache_resource
+def get_selection_history() -> SelectionHistory:
+    """Get or create the selection history manager instance."""
+    return SelectionHistory()
 
 
 @st.cache_resource

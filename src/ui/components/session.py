@@ -10,7 +10,11 @@ from datetime import datetime, timezone
 import streamlit as st
 
 from src.ml.similarity import SimilarityEngine
-from src.ui.components.initializers import get_cache_manager, load_cached_data
+from src.ui.components.initializers import (
+    get_cache_manager,
+    get_selection_history,
+    load_cached_data,
+)
 from src.ui.search_filters import FilterState
 
 # Default values for session state
@@ -38,6 +42,8 @@ SESSION_DEFAULTS: dict = {
         "assay_type": None,
         "top_n": 10,
     },
+    # Selection history entries loaded from disk
+    "selection_history": [],
 }
 
 
@@ -106,3 +112,9 @@ def load_cached_data_into_session() -> bool:
         st.session_state.feature_combiner = cached_combiner
 
     return True
+
+
+def load_selection_history_into_session() -> None:
+    """Load selection history from disk into session state."""
+    history = get_selection_history()
+    st.session_state.selection_history = history.get_entries()

@@ -1,15 +1,28 @@
 # src/ui/tabs/search.py
 """Search and dataset selection tab for MetaENCODE."""
 
+from typing import Any
+
 import streamlit as st
 
-from src.ui.components.initializers import get_api_client
+from src.ui.components.initializers import get_api_client, get_selection_history
 from src.ui.formatters import (
     format_accession_as_link,
     format_organism_display,
     get_encode_experiment_url,
     truncate_text,
 )
+from src.utils.history import SelectionHistory
+
+
+def _save_to_history(dataset: dict[str, Any]) -> None:
+    """Save a dataset selection to persistent history and sync session state."""
+    accession = dataset.get("accession", "")
+    if not accession:
+        return
+    history = get_selection_history()
+    entries = history.add(accession, dataset)
+    st.session_state.selection_history = entries
 
 
 def render_search_tab() -> None:
@@ -97,6 +110,7 @@ def render_search_tab() -> None:
                         st.session_state.previous_selection_index = selected_idx
                         selected_row = results_df.iloc[selected_idx]
                         st.session_state.selected_dataset = selected_row.to_dict()
+                        _save_to_history(selected_row.to_dict())
                         st.success(f"Selected: {selected_row['accession']}")
                 else:
                     # No rows currently selected; clear previous index so a future selection is detected.
@@ -129,8 +143,38 @@ def render_search_tab() -> None:
 
     st.divider()
 
-    # Manual accession input
+    # Manual accession input with recent selections
     st.subheader("Or enter an accession directly")
+
+    # Recent selections dropdown (only shown when history exists)
+    history_entries = st.session_state.get("selection_history", [])
+    if history_entries:
+        labels = ["Select a recent dataset..."] + [
+            SelectionHistory.format_entry_label(e) for e in history_entries
+        ]
+        history_choice = st.selectbox(
+            "Recent selections",
+            options=range(len(labels)),
+            format_func=lambda i: labels[i],
+            key="history_selectbox",
+        )
+
+        # Load from history when a real entry is selected (not placeholder)
+        last_choice = st.session_state.get("_last_history_selection", 0)
+        if history_choice and history_choice != last_choice:
+            st.session_state._last_history_selection = history_choice
+            selected_entry = history_entries[history_choice - 1]
+            selected_accession = selected_entry["accession"]
+            with st.spinner(f"Loading {selected_accession}..."):
+                try:
+                    client = get_api_client()
+                    dataset = client.fetch_experiment_by_accession(selected_accession)
+                    st.session_state.selected_dataset = dataset
+                    _save_to_history(dataset)
+                    st.success(f"Loaded dataset: {selected_accession}")
+                except (ValueError, Exception) as e:
+                    st.error(f"Failed to load dataset: {e}")
+
     accession = st.text_input(
         "ENCODE Accession",
         placeholder="e.g., ENCSR000AKS",
@@ -144,6 +188,7 @@ def render_search_tab() -> None:
                     client = get_api_client()
                     dataset = client.fetch_experiment_by_accession(accession.strip())
                     st.session_state.selected_dataset = dataset
+                    _save_to_history(dataset)
                     st.success(f"Loaded dataset: {accession}")
                 except ValueError as e:
                     st.error(str(e))

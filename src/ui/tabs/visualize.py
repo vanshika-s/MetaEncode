@@ -275,8 +275,6 @@ def render_visualize_tab() -> None:
         if view_mode == "all_datasets":
             cache_mgr = get_cache_manager()
             key = _viz_cache_key(reduction_method, filter_outliers)
-            if cache_mgr.exists(key):
-                st.caption("Precomputed - will load instantly")
 
         # Generate button - different function based on view mode
         can_generate = view_mode == "all_datasets" or similar_available

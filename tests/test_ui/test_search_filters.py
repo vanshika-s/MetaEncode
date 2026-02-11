@@ -29,6 +29,8 @@ class TestFilterStateInit:
         assert state.age_stage is None
         assert state.lab is None
         assert state.min_replicates == 0
+        assert state.min_bio_replicates == 0
+        assert state.min_tech_replicates == 0
         assert state.max_results == 20
         assert state.description_search is None
 
@@ -91,6 +93,8 @@ class TestFilterStateToDict:
             "age_stage",
             "lab",
             "min_replicates",
+            "min_bio_replicates",
+            "min_tech_replicates",
             "max_results",
             "description_search",
         }
@@ -105,6 +109,8 @@ class TestFilterStateFromDict:
         state = FilterState.from_dict({})
         assert state.assay_type is None
         assert state.min_replicates == 0
+        assert state.min_bio_replicates == 0
+        assert state.min_tech_replicates == 0
         assert state.max_results == 20
 
     def test_from_dict_partial(self) -> None:
@@ -126,6 +132,8 @@ class TestFilterStateFromDict:
             age_stage="adult",
             lab="Bing Ren",
             min_replicates=2,
+            min_bio_replicates=2,
+            min_tech_replicates=1,
             max_results=30,
             description_search="enhancer",
         )
@@ -139,6 +147,8 @@ class TestFilterStateFromDict:
         assert restored.age_stage == original.age_stage
         assert restored.lab == original.lab
         assert restored.min_replicates == original.min_replicates
+        assert restored.min_bio_replicates == original.min_bio_replicates
+        assert restored.min_tech_replicates == original.min_tech_replicates
         assert restored.max_results == original.max_results
         assert restored.description_search == original.description_search
 
@@ -200,6 +210,26 @@ class TestFilterStateHasAnyFilter:
         """Test has_any_filter with description_search set."""
         state = FilterState(description_search="8-week cerebellum")
         assert state.has_any_filter() is True
+
+    def test_has_any_filter_with_min_bio_replicates(self) -> None:
+        """Test has_any_filter with min_bio_replicates > 0."""
+        state = FilterState(min_bio_replicates=2)
+        assert state.has_any_filter() is True
+
+    def test_has_any_filter_with_min_bio_replicates_zero(self) -> None:
+        """Test has_any_filter with min_bio_replicates = 0."""
+        state = FilterState(min_bio_replicates=0)
+        assert state.has_any_filter() is False
+
+    def test_has_any_filter_with_min_tech_replicates(self) -> None:
+        """Test has_any_filter with min_tech_replicates > 0."""
+        state = FilterState(min_tech_replicates=1)
+        assert state.has_any_filter() is True
+
+    def test_has_any_filter_with_min_tech_replicates_zero(self) -> None:
+        """Test has_any_filter with min_tech_replicates = 0."""
+        state = FilterState(min_tech_replicates=0)
+        assert state.has_any_filter() is False
 
     def test_has_any_filter_max_results_only(self) -> None:
         """Test that max_results alone doesn't count as a filter."""
@@ -821,6 +851,8 @@ def sample_df_for_filtering() -> pd.DataFrame:
             "life_stage": ["adult", "embryonic", "postnatal", "adult", "adult"],
             "lab": ["lab-a", "lab-b", "Bing Ren", "lab-b", "lab-a"],
             "replicate_count": [2, 3, 1, 4, 2],
+            "bio_replicate_count": [2, 2, 1, 3, 2],
+            "tech_replicate_count": [0, 1, 0, 1, 0],
         }
     )
 
@@ -940,6 +972,54 @@ class TestSearchFilterManagerApplyFilters:
         result = manager.apply_filters(sample_df_for_filtering, filters)
         assert len(result) == 2
         assert all(result["replicate_count"] >= 3)
+
+    def test_apply_filters_min_bio_replicates(
+        self, manager: SearchFilterManager, sample_df_for_filtering: pd.DataFrame
+    ) -> None:
+        """Test apply_filters with min_bio_replicates filter."""
+        filters = FilterState(min_bio_replicates=2)
+        result = manager.apply_filters(sample_df_for_filtering, filters)
+        assert len(result) == 4
+        assert all(result["bio_replicate_count"] >= 2)
+
+    def test_apply_filters_min_tech_replicates(
+        self, manager: SearchFilterManager, sample_df_for_filtering: pd.DataFrame
+    ) -> None:
+        """Test apply_filters with min_tech_replicates filter."""
+        filters = FilterState(min_tech_replicates=1)
+        result = manager.apply_filters(sample_df_for_filtering, filters)
+        assert len(result) == 2
+        assert all(result["tech_replicate_count"] >= 1)
+
+    def test_apply_filters_bio_replicates_missing_column(
+        self, manager: SearchFilterManager
+    ) -> None:
+        """Test apply_filters with bio_replicate_count column missing (backward compat)."""
+        df = pd.DataFrame(
+            {
+                "accession": ["ENC001", "ENC002"],
+                "replicate_count": [2, 3],
+            }
+        )
+        filters = FilterState(min_bio_replicates=2)
+        result = manager.apply_filters(df, filters)
+        # Should skip filter when column missing
+        assert len(result) == 2
+
+    def test_apply_filters_tech_replicates_missing_column(
+        self, manager: SearchFilterManager
+    ) -> None:
+        """Test apply_filters with tech_replicate_count column missing (backward compat)."""
+        df = pd.DataFrame(
+            {
+                "accession": ["ENC001", "ENC002"],
+                "replicate_count": [2, 3],
+            }
+        )
+        filters = FilterState(min_tech_replicates=1)
+        result = manager.apply_filters(df, filters)
+        # Should skip filter when column missing
+        assert len(result) == 2
 
     def test_apply_filters_combined(
         self, manager: SearchFilterManager, sample_df_for_filtering: pd.DataFrame

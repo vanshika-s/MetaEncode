@@ -5,6 +5,8 @@ This module handles initialization and management of Streamlit session state
 variables used throughout the application.
 """
 
+from datetime import datetime, timezone
+
 import streamlit as st
 
 from src.ml.similarity import SimilarityEngine
@@ -22,6 +24,7 @@ SESSION_DEFAULTS: dict = {
     "combined_vectors": None,
     "feature_combiner": None,
     "similarity_engine": None,
+    "cache_date": None,  # Timestamp of precomputed data
     # Visualization state
     "coords_2d": None,
     "viz_metadata": None,
@@ -54,6 +57,8 @@ def init_session_state() -> None:
 
     # Mark session state as initialized
     st.session_state["_initialized"] = True
+
+
 def load_cached_data_into_session() -> bool:
     """Load precomputed data from cache into session state.
 
@@ -75,6 +80,12 @@ def load_cached_data_into_session() -> bool:
 
     if cached_meta is None or cached_emb is None:
         return False
+
+    # Record cache retrieval date from file modification time
+    metadata_path = cache_mgr._get_cache_path("metadata")
+    if metadata_path.exists():
+        mtime = metadata_path.stat().st_mtime
+        st.session_state.cache_date = datetime.fromtimestamp(mtime, tz=timezone.utc)
 
     # Load metadata and embeddings
     st.session_state.metadata_df = cached_meta

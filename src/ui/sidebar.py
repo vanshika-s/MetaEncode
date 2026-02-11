@@ -356,6 +356,11 @@ def render_sidebar() -> dict:
         """
     )
 
+    # Data freshness indicator (PRD §6.4)
+    cache_date = st.session_state.get("cache_date")
+    if cache_date is not None:
+        st.sidebar.caption(f"Data retrieved: {cache_date:%Y-%m-%d %H:%M} UTC")
+
     # Return legacy format for backward compatibility
     return {
         "search_query": search_query,

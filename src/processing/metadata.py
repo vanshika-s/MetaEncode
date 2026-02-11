@@ -155,7 +155,6 @@ class MetadataProcessor:
         Returns:
             Cleaned text (lowercase, stripped, special chars removed).
         """
-        #TODO: Implement spell-checker
         
         if text is None or pd.isna(text):
             return ""

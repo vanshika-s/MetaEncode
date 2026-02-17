@@ -1,3 +1,4 @@
+
 # src/ui/sidebar.py
 """Sidebar UI rendering for MetaENCODE.
 
@@ -46,8 +47,10 @@ def render_sidebar() -> dict:
         Dictionary containing current filter settings for backward compatibility.
     """
     filter_mgr = get_filter_manager()
-    
-    st.sidebar.title("Similarity Search")
+
+    st.sidebar.title("MetaENCODE")
+    st.sidebar.markdown("*ENCODE Dataset Similarity Search*")
+    st.sidebar.divider()
 
     # --- Primary Filters (always visible) ---
     st.sidebar.subheader("Search Filters")
@@ -148,120 +151,137 @@ def render_sidebar() -> dict:
     )
 
     st.sidebar.divider()
-    
-    # Used to be "Biosample" -> changed to collapsible advanced search
-    with st.sidebar.expander("Advanced Search"):
 
-        # Classification type selector - switches between organ, cell, developmental, system
-        slim_type_options = list(SLIM_TYPES.keys())
-        slim_type_labels = {
-            "organ": "Organ System",
-            "cell": "Cell Type",
-            "developmental": "Germ Layer",
-            "system": "Body System",
-        }
+    # --- Biosample Selection (Hierarchical with Switchable Classification) ---
+    st.sidebar.subheader("Biosample")
 
-        # Initialize classification type in session state if needed
-        if "classification_type" not in st.session_state:
-            st.session_state.classification_type = "organ"
+    # Classification type selector - switches between organ, cell, developmental, system
+    slim_type_options = list(SLIM_TYPES.keys())
+    slim_type_labels = {
+        "organ": "Organ System",
+        "cell": "Cell Type",
+        "developmental": "Germ Layer",
+        "system": "Body System",
+    }
 
-        classification_type = st.selectbox(
-            "Classification Type",
-            options=slim_type_options,
-            index=slim_type_options.index(st.session_state.classification_type),
-            format_func=lambda x: slim_type_labels.get(x, x.title()),
-            help=(
-                "Choose how to classify biosamples "
-                "(organ, cell type, germ layer, or body system)"
-            ),
-            key="filter_classification_type",
-        )
-        st.session_state.classification_type = classification_type
+    # Initialize classification type in session state if needed
+    if "classification_type" not in st.session_state:
+        st.session_state.classification_type = "organ"
 
-        # Dynamic category selector based on classification type
-        category_data = get_slim_categories(classification_type)[:MAX_CATEGORY_OPTIONS]
-        category_options = [""] + [name for name, _ in category_data]
-        category_counts = {name: count for name, count in category_data}
-        current_bp = st.session_state.filter_state.body_part or ""
+    classification_type = st.sidebar.selectbox(
+        "Classification Type",
+        options=slim_type_options,
+        index=slim_type_options.index(st.session_state.classification_type),
+        format_func=lambda x: slim_type_labels.get(x, x.title()),
+        help=(
+            "Choose how to classify biosamples "
+            "(organ, cell type, germ layer, or body system)"
+        ),
+        key="filter_classification_type",
+    )
+    st.session_state.classification_type = classification_type
 
-        # For backwards compatibility, body_part stores the selected category
-        def format_category(x: str) -> str:
-            if x == "":
-                return f"All {slim_type_labels[classification_type].lower()}s"
-            display = get_slim_display_name(classification_type, x)
-            count = category_counts.get(x, 0)
-            return f"{display} ({count:,})"
+    # Dynamic category selector based on classification type
+    category_data = get_slim_categories(classification_type)[:MAX_CATEGORY_OPTIONS]
+    category_options = [""] + [name for name, _ in category_data]
+    category_counts = {name: count for name, count in category_data}
+    current_bp = st.session_state.filter_state.body_part or ""
 
-        body_part = st.selectbox(
-            SLIM_TYPES[classification_type]["display_prefix"],
-            options=category_options,
-            index=(
-                category_options.index(current_bp)
-                if current_bp in category_options
-                else 0
-            ),
-            format_func=format_category,
-            help=SLIM_TYPES[classification_type]["description"],
-            key="filter_body_part",
-        )
+    # For backwards compatibility, body_part stores the selected category
+    def format_category(x: str) -> str:
+        if x == "":
+            return f"All {slim_type_labels[classification_type].lower()}s"
+        display = get_slim_display_name(classification_type, x)
+        count = category_counts.get(x, 0)
+        return f"{display} ({count:,})"
 
-        # Tissue / Cell Type (filtered by selected category)
-        if body_part:
-            # Get biosamples for selected category from JSON
-            biosamples_data = get_biosamples_for_slim(classification_type, body_part)[
-                :MAX_BIOSAMPLE_OPTIONS
-            ]
-            tissue_options = [""] + [name for name, _ in biosamples_data]
-            biosample_counts = {name: count for name, count in biosamples_data}
-        else:
-            # Show top global biosamples when no category selected
-            tissue_options = [""] + get_biosample_names(limit=100)
-            biosample_counts = {}
+    body_part = st.sidebar.selectbox(
+        SLIM_TYPES[classification_type]["display_prefix"],
+        options=category_options,
+        index=(
+            category_options.index(current_bp)
+            if current_bp in category_options
+            else 0
+        ),
+        format_func=format_category,
+        help=SLIM_TYPES[classification_type]["description"],
+        key="filter_body_part",
+    )
 
-        current_biosample = st.session_state.filter_state.biosample or ""
+    # Tissue / Cell Type (filtered by selected category)
+    if body_part:
+        # Get biosamples for selected category from JSON
+        biosamples_data = get_biosamples_for_slim(classification_type, body_part)[
+            :MAX_BIOSAMPLE_OPTIONS
+        ]
+        tissue_options = [""] + [name for name, _ in biosamples_data]
+        biosample_counts = {name: count for name, count in biosamples_data}
+    else:
+        # Show top global biosamples when no category selected
+        tissue_options = [""] + get_biosample_names(limit=100)
+        biosample_counts = {}
 
-        biosample = st.selectbox(
-            "Tissue / Cell Type",
-            options=tissue_options,
-            index=(
-                tissue_options.index(current_biosample)
-                if current_biosample in tissue_options
-                else 0
-            ),
-            format_func=lambda x: (
-                "All tissues"
-                if x == ""
-                else (f"{x} ({biosample_counts[x]:,})" if x in biosample_counts else x)
-            ),
-            help="Filter by specific tissue or cell type (related terms will also match)",
-            key="filter_biosample",
-        )
+    current_biosample = st.session_state.filter_state.biosample or ""
 
-        # Show related tissues hint if biosample is selected
-        if biosample:
-            related = filter_mgr.get_related_tissues(biosample)
-            if len(related) > 1:
-                other_related = [t for t in related if t.lower() != biosample.lower()]
-                if other_related:
-                    st.sidebar.caption(f"Also matches: {', '.join(other_related[:3])}")
+    biosample = st.sidebar.selectbox(
+        "Tissue / Cell Type",
+        options=tissue_options,
+        index=(
+            tissue_options.index(current_biosample)
+            if current_biosample in tissue_options
+            else 0
+        ),
+        format_func=lambda x: (
+            "All tissues"
+            if x == ""
+            else (f"{x} ({biosample_counts[x]:,})" if x in biosample_counts else x)
+        ),
+        help="Filter by specific tissue or cell type (related terms will also match)",
+        key="filter_biosample",
+    )
 
-        # Life Stage - property of biosample (adult, embryonic, child, etc.)
-        life_stage_data = get_life_stages()  # Returns list of (name, count) tuples
-        stage_options = [""] + [name for name, count in life_stage_data]
-        stage_counts = {name: count for name, count in life_stage_data}
-        current_age = st.session_state.filter_state.age_stage or ""
+    # Show related tissues hint if biosample is selected
+    if biosample:
+        related = filter_mgr.get_related_tissues(biosample)
+        if len(related) > 1:
+            other_related = [t for t in related if t.lower() != biosample.lower()]
+            if other_related:
+                st.sidebar.caption(f"Also matches: {', '.join(other_related[:3])}")
 
-        age_stage = st.selectbox(
-            "Life Stage",
-            options=stage_options,
-            index=stage_options.index(current_age) if current_age in stage_options else 0,
-            format_func=lambda x: (
-                "All stages" if x == "" else f"{x} ({stage_counts.get(x, 0):,})"
-            ),
-            help="Filter by life stage (e.g., adult, embryonic, child)",
-            key="filter_age_stage",
-        )
-        
+    # Life Stage - property of biosample (adult, embryonic, child, etc.)
+    life_stage_data = get_life_stages()  # Returns list of (name, count) tuples
+    stage_options = [""] + [name for name, count in life_stage_data]
+    stage_counts = {name: count for name, count in life_stage_data}
+    current_age = st.session_state.filter_state.age_stage or ""
+
+    age_stage = st.sidebar.selectbox(
+        "Life Stage",
+        options=stage_options,
+        index=stage_options.index(current_age) if current_age in stage_options else 0,
+        format_func=lambda x: (
+            "All stages" if x == "" else f"{x} ({stage_counts.get(x, 0):,})"
+        ),
+        help="Filter by life stage (e.g., adult, embryonic, child)",
+        key="filter_age_stage",
+    )
+
+    st.sidebar.divider()
+
+    # --- Results Control ---
+    st.sidebar.subheader("Results")
+
+    max_results = st.sidebar.slider(
+        "Max results to show",
+        min_value=5,
+        max_value=50,
+        value=st.session_state.filter_state.max_results,
+        step=5,
+        help="Applies to both search results and similar datasets",
+        key="filter_max_results",
+    )
+
+    # --- More Options (Collapsible) ---
+    with st.sidebar.expander("More Options"):
         # 7. Lab filter - ordered by popularity (from JSON)
         lab_names = get_lab_names(limit=30)  # Top 30 labs
         lab_options = [""] + lab_names
@@ -285,24 +305,8 @@ def render_sidebar() -> dict:
             help="Filter by minimum number of replicates",
             key="filter_min_replicates",
         )
-        
-        # --- Results Control ---
-        st.subheader("Results")
-
-        max_results = st.slider(
-            "Max results to show",
-            min_value=5,
-            max_value=50,
-            value=st.session_state.filter_state.max_results,
-            step=5,
-            help="Applies to both search results and similar datasets",
-            key="filter_max_results",
-        )
-        
-        
 
     st.sidebar.divider()
-
 
     # --- Build Filter State ---
     filter_state = FilterState(

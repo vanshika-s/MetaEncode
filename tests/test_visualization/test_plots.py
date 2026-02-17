@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import pytest
 
 from src.visualization import DimensionalityReducer, PlotGenerator
+from src.visualization.plots import apply_jitter
 
 # ============================================================================
 # Module Import Tests
@@ -451,3 +452,105 @@ class TestPlotGeneratorSimilarityHeatmap:
         fig = plotter.similarity_heatmap(sample_similarity_matrix, labels)
         # z data should match input matrix
         assert fig.data[0].z.shape == sample_similarity_matrix.shape
+
+
+# ============================================================================
+# apply_jitter Tests
+# ============================================================================
+
+
+class TestApplyJitter:
+    """Tests for the apply_jitter function that prevents point overlap."""
+
+    def test_jitter_preserves_shape(self, sample_2d_coords: np.ndarray):
+        """Test that jittered output has the same shape as input."""
+        result = apply_jitter(sample_2d_coords)
+        assert result.shape == sample_2d_coords.shape
+
+    def test_jitter_does_not_modify_original(self, sample_2d_coords: np.ndarray):
+        """Test that apply_jitter returns a copy, not a mutation."""
+        original = sample_2d_coords.copy()
+        apply_jitter(sample_2d_coords)
+        np.testing.assert_array_equal(sample_2d_coords, original)
+
+    def test_jitter_modifies_x_values(self, sample_2d_coords: np.ndarray):
+        """Test that x-coordinates are modified by jitter."""
+        result = apply_jitter(sample_2d_coords)
+        # At least some x values should differ
+        assert not np.allclose(result[:, 0], sample_2d_coords[:, 0])
+
+    def test_jitter_preserves_y_values(self, sample_2d_coords: np.ndarray):
+        """Test that y-coordinates are left unchanged."""
+        result = apply_jitter(sample_2d_coords)
+        np.testing.assert_array_equal(result[:, 1], sample_2d_coords[:, 1])
+
+    def test_jitter_magnitude_proportional_to_range(self):
+        """Test that jitter magnitude scales with x-range."""
+        # Wide x-range
+        wide = np.array([[0.0, 0.0], [100.0, 0.0]], dtype=np.float32)
+        # Narrow x-range
+        narrow = np.array([[0.0, 0.0], [1.0, 0.0]], dtype=np.float32)
+
+        wide_jittered = apply_jitter(wide)
+        narrow_jittered = apply_jitter(narrow)
+
+        wide_max_shift = np.max(np.abs(wide_jittered[:, 0] - wide[:, 0]))
+        narrow_max_shift = np.max(np.abs(narrow_jittered[:, 0] - narrow[:, 0]))
+
+        # Wide range should produce larger absolute jitter
+        assert wide_max_shift > narrow_max_shift
+
+    def test_jitter_reproducible_with_same_seed(self, sample_2d_coords: np.ndarray):
+        """Test that the same random_state produces identical results."""
+        result1 = apply_jitter(sample_2d_coords, random_state=42)
+        result2 = apply_jitter(sample_2d_coords, random_state=42)
+        np.testing.assert_array_equal(result1, result2)
+
+    def test_jitter_different_seeds_differ(self, sample_2d_coords: np.ndarray):
+        """Test that different random states produce different jitter."""
+        result1 = apply_jitter(sample_2d_coords, random_state=42)
+        result2 = apply_jitter(sample_2d_coords, random_state=99)
+        assert not np.allclose(result1[:, 0], result2[:, 0])
+
+    def test_jitter_zero_range_returns_unchanged(self):
+        """Test that identical x-coordinates (zero range) produce no jitter."""
+        coords = np.array([[5.0, 1.0], [5.0, 2.0], [5.0, 3.0]], dtype=np.float32)
+        result = apply_jitter(coords)
+        np.testing.assert_array_equal(result, coords)
+
+    def test_jitter_custom_scale_factor(self, sample_2d_coords: np.ndarray):
+        """Test that a larger scale_factor produces smaller jitter."""
+        small_jitter = apply_jitter(sample_2d_coords, scale_factor=200.0)
+        large_jitter = apply_jitter(sample_2d_coords, scale_factor=10.0)
+
+        small_shift = np.max(np.abs(small_jitter[:, 0] - sample_2d_coords[:, 0]))
+        large_shift = np.max(np.abs(large_jitter[:, 0] - sample_2d_coords[:, 0]))
+
+        assert large_shift > small_shift
+
+    def test_jitter_separates_overlapping_points(self):
+        """Test the core use case: overlapping points become distinct."""
+        # 5 points at exactly the same position (the bug scenario)
+        coords = np.array(
+            [[1.0, 2.0], [1.0, 2.0], [1.0, 2.0], [1.0, 2.0], [1.0, 2.0]],
+            dtype=np.float32,
+        )
+        # Add one distant point so x_range > 0
+        coords = np.vstack([coords, [[10.0, 5.0]]])
+
+        result = apply_jitter(coords)
+        # The first 5 x-values should no longer all be identical
+        unique_x = np.unique(result[:5, 0])
+        assert len(unique_x) > 1
+
+    def test_scatter_plot_applies_jitter(
+        self, sample_2d_coords: np.ndarray, sample_metadata_for_plotting: pd.DataFrame
+    ):
+        """Test that scatter_plot internally applies jitter to coordinates."""
+        plotter = PlotGenerator()
+        fig = plotter.scatter_plot(sample_2d_coords, sample_metadata_for_plotting)
+
+        # Extract plotted x values from the figure trace
+        plotted_x = np.array(fig.data[0].x)
+        # They should differ from the raw input due to jitter
+        assert not np.allclose(plotted_x, sample_2d_coords[:, 0])

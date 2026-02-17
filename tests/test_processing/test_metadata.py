@@ -142,3 +142,20 @@ class TestMetadataProcessorCoverageEdgeCases:
         result = processor.extract_nested_field(data, "a.b.c")
         # Should return None because [1, 2, 3] is not a dict
         assert result is None
+
+    def test_process_fills_bio_tech_replicate_counts(self):
+        """Bio/tech replicate count fields get fillna(0) treatment."""
+        processor = MetadataProcessor(fill_missing=True)
+        df = pd.DataFrame(
+            {
+                "accession": ["ENCSR000AAA", "ENCSR000BBB"],
+                "description": ["test1", "test2"],
+                "bio_replicate_count": [2, None],
+                "tech_replicate_count": [None, 1],
+            }
+        )
+        result = processor.process(df)
+        assert result["bio_replicate_count"].iloc[0] == 2
+        assert result["bio_replicate_count"].iloc[1] == 0
+        assert result["tech_replicate_count"].iloc[0] == 0
+        assert result["tech_replicate_count"].iloc[1] == 1

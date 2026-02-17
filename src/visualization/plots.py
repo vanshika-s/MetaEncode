@@ -233,14 +233,17 @@ class PlotGenerator:
         Returns:
             Plotly Figure object.
         """
+        # Apply jitter to separate overlapping points
+        coords = apply_jitter(coords)
+        
         # Create plot DataFrame
         plot_df = metadata.copy()
         plot_df["x"] = coords[:, 0]
         plot_df["y"] = coords[:, 1]
 
         # Jitter data to separate
-        jitter_amount = (plot_df['x'].max()-plot_df['x'].min())/50;
-        plot_df['x'] = plot_df['x']+np.random.uniform(-jitter_amount, jitter_amount, size=len(plot_df['x']));
+        # jitter_amount = (plot_df['x'].max()-plot_df['x'].min())/50;
+        # plot_df['x'] = plot_df['x']+np.random.uniform(-jitter_amount, jitter_amount, size=len(plot_df['x']));
 
         # Truncate long descriptions for hover
         if "description" in plot_df.columns:
@@ -384,6 +387,42 @@ class PlotGenerator:
         )
 
         return fig
+    
+    
+    
+def apply_jitter(
+    coords: np.ndarray,
+    scale_factor: float = 50.0,
+    random_state: int = 42,
+) -> np.ndarray:
+    """Apply jitter to 2D coordinates to separate overlapping points.
+
+    When datasets have very similar embeddings (e.g. multiple with similarity
+    scores of 0.997), dimensionality reduction can map them to nearly identical
+    2D positions. Points rendered later sit exactly on top of earlier ones,
+    hiding them. Adding small random noise to the x-coordinates separates
+    these overlapping points so all are visible.
+
+    The jitter magnitude is proportional to the x-range of the data, so it
+    adapts to the scale of the plot without distorting the overall layout.
+
+    Args:
+        coords: 2D coordinates of shape (n_samples, 2).
+        scale_factor: Divisor for x-range to determine jitter magnitude.
+            Higher values produce less jitter. Default 50.0 (x_range / 50).
+        random_state: Random seed for reproducibility.
+
+    Returns:
+        New array with jitter applied to x-coordinates.
+    """
+    jittered = coords.copy()
+    x_range = float(coords[:, 0].max() - coords[:, 0].min())
+    if x_range == 0:
+        return jittered
+    jitter_amount = x_range / scale_factor
+    rng = np.random.default_rng(random_state)
+    jittered[:, 0] += rng.uniform(-jitter_amount, jitter_amount, size=len(coords))
+    return jittered
 
 
 

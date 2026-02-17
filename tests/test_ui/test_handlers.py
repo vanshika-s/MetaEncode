@@ -284,3 +284,32 @@ class TestExecuteSearch:
         assert call_kwargs["biosample"] == "liver"
         assert call_kwargs["target"] == "H3K27ac"
         assert call_kwargs["life_stage"] == "adult"
+
+    @patch("src.ui.handlers.get_filter_manager")
+    @patch("src.ui.handlers.get_api_client")
+    def test_post_filter_threads_bio_tech_replicates(self, mock_client, mock_filter_mgr):
+        """Bio/tech replicate filters should be threaded to post_filter_state."""
+        client = MagicMock()
+        client.fetch_experiments.return_value = pd.DataFrame(
+            {"accession": ["ENCSR001"], "bio_replicate_count": [2], "tech_replicate_count": [1]}
+        )
+        mock_client.return_value = client
+
+        filter_mgr = MagicMock()
+        filter_mgr.apply_filters.return_value = pd.DataFrame(
+            {"accession": ["ENCSR001"]}
+        )
+        mock_filter_mgr.return_value = filter_mgr
+
+        filter_state = FilterState(
+            assay_type="ChIP-seq",
+            min_bio_replicates=2,
+            min_tech_replicates=1,
+        )
+        execute_search(filter_state, max_results=10)
+
+        # Verify apply_filters was called with a FilterState containing bio/tech fields
+        call_args = filter_mgr.apply_filters.call_args
+        post_filter: FilterState = call_args[0][1]
+        assert post_filter.min_bio_replicates == 2
+        assert post_filter.min_tech_replicates == 1

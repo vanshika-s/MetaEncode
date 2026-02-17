@@ -59,6 +59,8 @@ class FilterState:
     age_stage: Optional[str] = None
     lab: Optional[str] = None
     min_replicates: int = 0
+    min_bio_replicates: int = 0
+    min_tech_replicates: int = 0
     max_results: int = 20
     # Free text for description search (age, etc.)
     description_search: Optional[str] = None
@@ -74,6 +76,8 @@ class FilterState:
             "age_stage": self.age_stage,
             "lab": self.lab,
             "min_replicates": self.min_replicates,
+            "min_bio_replicates": self.min_bio_replicates,
+            "min_tech_replicates": self.min_tech_replicates,
             "max_results": self.max_results,
             "description_search": self.description_search,
         }
@@ -90,6 +94,8 @@ class FilterState:
             age_stage=d.get("age_stage"),
             lab=d.get("lab"),
             min_replicates=d.get("min_replicates", 0),
+            min_bio_replicates=d.get("min_bio_replicates", 0),
+            min_tech_replicates=d.get("min_tech_replicates", 0),
             max_results=d.get("max_results", 20),
             description_search=d.get("description_search"),
         )
@@ -106,6 +112,8 @@ class FilterState:
                 self.age_stage,
                 self.lab,
                 self.min_replicates > 0,
+                self.min_bio_replicates > 0,
+                self.min_tech_replicates > 0,
                 self.description_search,
             ]
         )
@@ -710,6 +718,14 @@ class SearchFilterManager:
         # Replicate count filter
         if filters.min_replicates > 0 and "replicate_count" in result.columns:
             result = result[result["replicate_count"] >= filters.min_replicates]
+
+        # Biological replicate count filter
+        if filters.min_bio_replicates > 0 and "bio_replicate_count" in result.columns:
+            result = result[result["bio_replicate_count"] >= filters.min_bio_replicates]
+
+        # Technical replicate count filter
+        if filters.min_tech_replicates > 0 and "tech_replicate_count" in result.columns:
+            result = result[result["tech_replicate_count"] >= filters.min_tech_replicates]
 
         return result
 

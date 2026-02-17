@@ -4,6 +4,7 @@ __pycache__/
 .env.local
 #data/cache/*
 !data/cache/.gitkeep
+data/cache/selection_history_*.json
 .DS_Store
 .mypy_cache/
 .claude/

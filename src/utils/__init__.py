@@ -2,6 +2,7 @@
 """Utility functions and caching module."""
 
 from .cache import CacheManager
+from .history import SelectionHistory
 
 # Note: data_loader is intentionally not imported here to avoid circular imports
 # and to keep data loading separate from the core utils package. Import any
@@ -30,6 +31,7 @@ except ImportError:
 
 __all__ = [
     "CacheManager",
+    "SelectionHistory",
     "VocabularySpellChecker",
     "SpellingSuggestion",
     "get_spell_checker",

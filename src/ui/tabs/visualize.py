@@ -287,7 +287,7 @@ def render_visualize_tab() -> None:
                 generate_visualization(reduction_method, color_option, filter_outliers)
 
     with col1:
-        st.subheader("Embedding Space")
+        #st.subheader("Embedding Space")
 
         if st.session_state.coords_2d is not None:
             # Use filtered metadata if available, fallback to full metadata

@@ -27,7 +27,40 @@ def _save_to_history(dataset: dict[str, Any]) -> None:
 
 def render_search_tab() -> None:
     """Render the search and selection tab."""
-    st.header("Search & Select Dataset")
+    st.markdown(
+        """
+        <style>
+        .search-title {
+            font-size: 1.9rem;
+            font-weight: 650;
+            margin-bottom: 0.25rem;
+        }
+
+        .search-subtitle {
+            font-size: 1.35rem;
+            font-   weight: 600;
+            margin-top: 1.75rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .search-helper {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #666;
+            margin-top: 1.2rem;
+            margin-bottom: 0.3rem;
+        }
+        
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    st.markdown(
+        "<div class='search-title'>Search & Select Dataset</div>",
+        unsafe_allow_html=True,
+    )
+    
 
     # Get current filter state
     filter_state = st.session_state.filter_state
@@ -38,7 +71,14 @@ def render_search_tab() -> None:
         results_df = st.session_state.search_results
 
         if not results_df.empty:
-            st.subheader(f"Search Results ({len(results_df)} datasets)")
+            st.markdown(
+                f"<div class='search-subtitle'>Search Results ({len(results_df)} datasets)</div>",
+                unsafe_allow_html=True,
+            )
+            
+            st.markdown("Please pick one of the datasets below.")
+            
+            
 
             # Display as interactive table with formatted columns
             display_cols = [
@@ -111,7 +151,7 @@ def render_search_tab() -> None:
                         selected_row = results_df.iloc[selected_idx]
                         st.session_state.selected_dataset = selected_row.to_dict()
                         _save_to_history(selected_row.to_dict())
-                        st.success(f"Selected: {selected_row['accession']}")
+                        st.success(f"Selected: {selected_row['accession']}. Scroll down to see info.")
                 else:
                     # No rows currently selected; clear previous index so a future selection is detected.
                     st.session_state.previous_selection_index = None
@@ -171,7 +211,7 @@ def render_search_tab() -> None:
                     dataset = client.fetch_experiment_by_accession(selected_accession)
                     st.session_state.selected_dataset = dataset
                     _save_to_history(dataset)
-                    st.success(f"Loaded dataset: {selected_accession}")
+                    st.success(f"Loaded dataset: {selected_accession}. Scroll down to see info.")
                 except (ValueError, Exception) as e:
                     st.error(f"Failed to load dataset: {e}")
 
@@ -189,7 +229,7 @@ def render_search_tab() -> None:
                     dataset = client.fetch_experiment_by_accession(accession.strip())
                     st.session_state.selected_dataset = dataset
                     _save_to_history(dataset)
-                    st.success(f"Loaded dataset: {accession}")
+                    st.success(f"Loaded dataset: {accession}. Scroll down to see info.")
                 except ValueError as e:
                     st.error(str(e))
                 except Exception as e:
@@ -198,9 +238,13 @@ def render_search_tab() -> None:
             st.warning("Please enter an accession number")
 
     # Display selected dataset
+    
     if st.session_state.selected_dataset is not None:
         st.divider()
-        st.subheader("Selected Dataset")
+        st.markdown(
+            "<div class='search-subtitle'>Selected Dataset</div>",
+            unsafe_allow_html=True,
+        )
         dataset = st.session_state.selected_dataset
 
         col1, col2 = st.columns(2)

@@ -1,3 +1,4 @@
+
 # src/ui/sidebar.py
 """Sidebar UI rendering for MetaENCODE.
 
@@ -47,14 +48,46 @@ def render_sidebar() -> dict:
     Returns:
         Dictionary containing current filter settings for backward compatibility.
     """
+    
+    st.markdown("""
+        <style>
+
+        /* SIDEBAR BACKGROUND */
+        section[data-testid="stSidebar"] {
+            background-color: #dfe6da;
+        }
+        
+        </style>
+        """, unsafe_allow_html=True)
+
     filter_mgr = get_filter_manager()
 
-    st.sidebar.title("MetaENCODE")
-    st.sidebar.markdown("*ENCODE Dataset Similarity Search*")
-    st.sidebar.divider()
+    st.sidebar.title("Similarity Search")
+    
+    st.sidebar.subheader("Results")
 
     # --- Primary Filters (always visible) ---
+    
+    def on_slider_change():
+        if st.session_state.get("has_searched", False):
+            st.session_state.refresh_results = True
+    
+    # NEW --- Results Control (moved to top safely) ---
+    max_results = st.sidebar.slider(
+        "Max results to show",
+        min_value=5,
+        max_value=50,
+        value=st.session_state.get("filter_max_results", 20),
+        step=5,
+        help="Applies to both search results and similar datasets",
+        key="filter_max_results",
+        on_change=on_slider_change
+    )
+
+    st.sidebar.divider()
+    
     st.sidebar.subheader("Search Filters")
+    
     st.sidebar.caption(
         "Filters apply to Search results only. "
         "Similar datasets show pure ML similarity."
@@ -268,9 +301,6 @@ def render_sidebar() -> dict:
 
     st.sidebar.divider()
 
-    # --- Results Control ---
-    st.sidebar.subheader("Results")
-
         
     '''
     def handle_search_click_example(filter_state: FilterState) -> None:
@@ -297,7 +327,9 @@ def render_sidebar() -> dict:
                     st.sidebar.info(spell_msg)
                 st.sidebar.success(f"Found {len(results)} results")
             except Exception as e:
-                st.sidebar.error(f"Search failed: {e}")'''
+                st.sidebar.error(f"Search failed: {e}")
+    
+    '''
 
   
 
@@ -349,31 +381,6 @@ def render_sidebar() -> dict:
         )
 
     st.sidebar.divider()
-
-    # --- Build Filter State ---
-    max_results = st.sidebar.slider(
-        "Max results to show",
-        min_value=5,
-        max_value=50,
-        value=st.session_state.filter_state.max_results,
-        step=5,
-        on_change = handle_search_click, 
-        args = (FilterState.from_dict({
-            "assay_type" : assay_type or None, 
-            "organism" : organism or None, 
-            "body_part" : body_part or None, 
-            "biosample" : biosample or None, 
-            "target" : target or None, 
-            "age_stage" : age_stage or None, 
-            "lab" : lab or None, 
-            "min_replicates" : min_replicates or 0, 
-            "max_results" : st.session_state.filter_state.max_results, 
-            "description_search" : description_search or None, 
-        }), ),
-        help="Applies to both search results and similar datasets",
-        key="filter_max_results"
-    )
-    
     
     
     # Store filter state
@@ -386,11 +393,19 @@ def render_sidebar() -> dict:
             "age_stage" : age_stage or 0, 
             "lab" : lab or 0, 
             "min_replicates" : min_replicates or 0, 
-            "max_results" : st.session_state.filter_state.max_results, 
+            "max_results" : st.session_state.filter_max_results, 
             "description_search" : description_search or None, 
         })
     
     st.session_state.filter_state = filter_state
+    
+    if (
+        st.session_state.get("refresh_results", False)
+        and st.session_state.get("has_searched", False)
+        ):
+        
+        st.session_state.refresh_results = False
+        handle_search_click(filter_state)
 
     # Build search query preview
     search_query = filter_mgr.build_search_query(filter_state)
@@ -406,6 +421,7 @@ def render_sidebar() -> dict:
         disabled=not filter_state.has_any_filter(),
     ):
         handle_search_click(filter_state)
+        st.session_state.has_searched = True
 
     # Clear filters button
     if st.sidebar.button("Clear Filters", use_container_width=True):

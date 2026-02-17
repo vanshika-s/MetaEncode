@@ -18,7 +18,6 @@ from src.ui.components.session import (
 )
 from src.ui.sidebar import render_sidebar
 from src.ui.tabs import render_search_tab, render_similar_tab, render_visualize_tab
-from scripts import precompute_embeddings
 
 # Page configuration - must be first Streamlit command
 st.set_page_config(
@@ -28,32 +27,95 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Margins
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 1rem;
+            padding-bottom: 2rem;
+            padding-left: 4rem;
+            padding-right: 4rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 
 def render_main_content() -> None:
-    """Render main content area with tabs."""
+    """Render main content area with cards"""
     st.title("MetaENCODE")
     st.markdown(
-        "**Discover related ENCODE datasets through "
-        "metadata-driven similarity scoring**"
+        "**Discover related ENCODE datasets through metadata-driven similarity scoring**"
     )
 
-    # Tabs for different views
-    tab_search, tab_similar, tab_visualize = st.tabs(
-        ["Search & Select", "Similar Datasets", "Visualize"]
-    )
+    # 1. Scoped CSS: Only affects buttons inside the 'nav-container'
+    st.markdown("""
+        <style>
+        /* Base Card */
+        [data-testid="stVerticalBlock"] > div:has(div.card-container) button {
+            height: 80px;
+            border-radius: 12px;
+            border: 2px solid #afbc88;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+            font-weight: 600;
+            color: #31333F;
+        }
 
-    with tab_search:
+        /* Hover Effect */
+        [data-testid="stVerticalBlock"] > div:has(div.card-container) button:hover {
+            border-color: #618B4A;
+            color: #618B4A;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Track state
+    if "active_tab" not in st.session_state:
+        st.session_state.active_tab = "Search"
+
+    # Card container
+    with st.container():
+        st.markdown('<div class="card-container"></div>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("🔍 Search & Select", use_container_width=True, key="btn_search"):
+                st.session_state.active_tab = "Search"
+                st.rerun()
+            if st.session_state.active_tab == "Search":
+                st.markdown("<div style='border-bottom: 5px solid #618B4A; margin-top: -15px;'></div>", unsafe_allow_html=True)
+
+        with col2:
+            if st.button("🧬 Similar Datasets", use_container_width=True, key="btn_similar"):
+                st.session_state.active_tab = "Similar"
+                st.rerun()
+            if st.session_state.active_tab == "Similar":
+                st.markdown("<div style='border-bottom: 5px solid #618B4A; margin-top: -15px;'></div>", unsafe_allow_html=True)
+
+        with col3:
+            if st.button("📊 Visualize", use_container_width=True, key="btn_visualize"):
+                st.session_state.active_tab = "Visualize"
+                st.rerun()
+            if st.session_state.active_tab == "Visualize":
+                st.markdown("<div style='border-bottom: 5px solid #618B4A; margin-top: -15px;'></div>", unsafe_allow_html=True)
+
+    st.divider()
+
+    # Display content
+    if st.session_state.active_tab == "Search":
         render_search_tab()
-
-    with tab_similar:
+    elif st.session_state.active_tab == "Similar":
         render_similar_tab()
-
-    with tab_visualize:
+    elif st.session_state.active_tab == "Visualize":
         render_visualize_tab()
 
-
 def main() -> None:
-
+    """Main application entry point."""
+    # Initialize session state
     init_session_state()
 
     # Load cached data into session state (if available)
@@ -74,3 +136,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    

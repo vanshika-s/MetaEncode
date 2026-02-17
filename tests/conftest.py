@@ -57,6 +57,58 @@ def sample_embedding_single() -> np.ndarray:
 
 
 @pytest.fixture
+def sample_experiment_embedded_replicates() -> dict:
+    """Sample experiment data with embedded replicate dicts (bio/tech numbers)."""
+    return {
+        "accession": "ENCSR000EMB",
+        "description": "ChIP-seq on human K562 with embedded replicates",
+        "assay_term_name": "ChIP-seq",
+        "biosample_ontology": {"term_name": "K562"},
+        "lab": {"title": "Test Lab"},
+        "status": "released",
+        "files": ["/files/ENCFF001AAA/", "/files/ENCFF002AAA/"],
+        "replicates": [
+            {
+                "biological_replicate_number": 1,
+                "technical_replicate_number": 1,
+                "library": {
+                    "biosample": {
+                        "donor": {
+                            "organism": {"name": "human", "scientific_name": "Homo sapiens"}
+                        },
+                        "life_stage": "adult",
+                    }
+                },
+            },
+            {
+                "biological_replicate_number": 1,
+                "technical_replicate_number": 2,
+                "library": {
+                    "biosample": {
+                        "donor": {
+                            "organism": {"name": "human", "scientific_name": "Homo sapiens"}
+                        },
+                        "life_stage": "adult",
+                    }
+                },
+            },
+            {
+                "biological_replicate_number": 2,
+                "technical_replicate_number": 1,
+                "library": {
+                    "biosample": {
+                        "donor": {
+                            "organism": {"name": "human", "scientific_name": "Homo sapiens"}
+                        },
+                        "life_stage": "adult",
+                    }
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
 def sample_combined_df() -> pd.DataFrame:
     """DataFrame with all required columns for FeatureCombiner testing."""
     return pd.DataFrame(
@@ -73,6 +125,8 @@ def sample_combined_df() -> pd.DataFrame:
             "biosample_term_name": ["K562", "liver", "HepG2", "K562"],
             "lab": ["lab-a", "lab-b", "lab-a", "lab-c"],
             "replicate_count": [2, 3, 1, 4],
+            "bio_replicate_count": [2, 3, 1, 3],
+            "tech_replicate_count": [0, 0, 0, 1],
             "file_count": [10, 15, 8, 20],
         }
     )

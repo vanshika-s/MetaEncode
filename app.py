@@ -11,7 +11,11 @@ Run with: streamlit run app.py
 
 import streamlit as st
 
-from src.ui.components.session import init_session_state, load_cached_data_into_session
+from src.ui.components.session import (
+    init_session_state,
+    load_cached_data_into_session,
+    load_selection_history_into_session,
+)
 from src.ui.sidebar import render_sidebar
 from src.ui.tabs import render_search_tab, render_similar_tab, render_visualize_tab
 from scripts import precompute_embeddings
@@ -54,6 +58,9 @@ def main() -> None:
 
     # Load cached data into session state (if available)
     load_cached_data_into_session()
+
+    # Load selection history from disk
+    load_selection_history_into_session()
 
     # Render sidebar and get filter settings
     filters = render_sidebar()

@@ -328,6 +328,26 @@ def render_sidebar() -> dict:
             key="filter_min_replicates",
         )
 
+        # 9. Min biological replicates
+        min_bio_replicates = st.number_input(
+            "Min biological replicates",
+            min_value=0,
+            max_value=10,
+            value=st.session_state.filter_state.min_bio_replicates,
+            help="Unique biological samples (donors, cell cultures)",
+            key="filter_min_bio_replicates",
+        )
+
+        # 10. Min technical replicates
+        min_tech_replicates = st.number_input(
+            "Min technical replicates",
+            min_value=0,
+            max_value=10,
+            value=st.session_state.filter_state.min_tech_replicates,
+            help="Extra technical replicates (same sample, different library preps)",
+            key="filter_min_tech_replicates",
+        )
+
     st.sidebar.divider()
 
     # --- Build Filter State ---
@@ -403,6 +423,11 @@ def render_sidebar() -> dict:
         [ENCODE Portal](https://www.encodeproject.org/)
         """
     )
+
+    # Data freshness indicator (PRD §6.4)
+    cache_date = st.session_state.get("cache_date")
+    if cache_date is not None:
+        st.sidebar.caption(f"Data retrieved: {cache_date:%Y-%m-%d %H:%M} UTC")
 
     # Return legacy format for backward compatibility
     return {

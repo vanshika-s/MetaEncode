@@ -25,6 +25,8 @@ def sample_df_for_combiner() -> pd.DataFrame:
             "biosample_term_name": ["K562", "liver", "HepG2", "K562"],
             "lab": ["lab-a", "lab-b", "lab-a", "lab-c"],
             "replicate_count": [2, 3, 1, 4],
+            "bio_replicate_count": [2, 3, 1, 3],
+            "tech_replicate_count": [0, 0, 0, 1],
             "file_count": [10, 15, 8, 20],
         }
     )
@@ -82,6 +84,8 @@ class TestFeatureCombinerFit:
         combiner.fit(sample_df_for_combiner)
 
         assert "replicate_count" in combiner._numeric_encoders
+        assert "bio_replicate_count" in combiner._numeric_encoders
+        assert "tech_replicate_count" in combiner._numeric_encoders
         assert "file_count" in combiner._numeric_encoders
 
     def test_fit_tracks_dimensions(self, sample_df_for_combiner: pd.DataFrame) -> None:
@@ -98,8 +102,8 @@ class TestFeatureCombinerFit:
         assert combiner._categorical_dims["biosample_term_name"] == 3
         # 3 unique labs: lab-a, lab-b, lab-c
         assert combiner._categorical_dims["lab"] == 3
-        # 2 numeric columns
-        assert combiner._numeric_dim == 2
+        # 4 numeric columns: replicate_count, bio_replicate_count, tech_replicate_count, file_count
+        assert combiner._numeric_dim == 4
 
     def test_fit_returns_self(self, sample_df_for_combiner: pd.DataFrame) -> None:
         """Test that fit returns self for chaining."""
@@ -136,8 +140,8 @@ class TestFeatureCombinerTransform:
         combined = combiner.transform(sample_df_for_combiner, sample_text_embeddings)
 
         n_samples = len(sample_df_for_combiner)
-        # 384 (text) + 3 (assay) + 2 (organism) + 3 (biosample) + 3 (lab) + 2 (numeric)
-        expected_dim = 384 + 3 + 2 + 3 + 3 + 2
+        # 384 (text) + 3 (assay) + 2 (organism) + 3 (biosample) + 3 (lab) + 4 (numeric)
+        expected_dim = 384 + 3 + 2 + 3 + 3 + 4
         assert combined.shape == (n_samples, expected_dim)
 
     def test_transform_without_text_embeddings(
@@ -149,8 +153,8 @@ class TestFeatureCombinerTransform:
         combined = combiner.transform(sample_df_for_combiner, text_embeddings=None)
 
         n_samples = len(sample_df_for_combiner)
-        # Only categorical + numeric: 3 + 2 + 3 + 3 + 2 = 13
-        expected_dim = 3 + 2 + 3 + 3 + 2
+        # Only categorical + numeric: 3 + 2 + 3 + 3 + 4 = 15
+        expected_dim = 3 + 2 + 3 + 3 + 4
         assert combined.shape == (n_samples, expected_dim)
 
     def test_transform_raises_if_not_fitted(
@@ -201,7 +205,7 @@ class TestFeatureCombinerTransformSingle:
         # Should be 1D vector
         assert result.ndim == 1
         # Same dimension as batch transform
-        expected_dim = 384 + 3 + 2 + 3 + 3 + 2
+        expected_dim = 384 + 3 + 2 + 3 + 3 + 4
         assert len(result) == expected_dim
 
     def test_transform_single_matches_batch(
@@ -287,8 +291,8 @@ class TestFeatureCombinerProperties:
         combiner = FeatureCombiner()
         combiner.fit(sample_df_for_combiner, text_embedding_dim=384)
 
-        # 384 + 3 + 2 + 3 + 3 + 2 = 397
-        expected = 384 + 3 + 2 + 3 + 3 + 2
+        # 384 + 3 + 2 + 3 + 3 + 4 = 399
+        expected = 384 + 3 + 2 + 3 + 3 + 4
         assert combiner.feature_dim == expected
 
     def test_feature_dim_raises_if_not_fitted(self) -> None:
@@ -309,7 +313,7 @@ class TestFeatureCombinerProperties:
         assert breakdown["organism"] == 2
         assert breakdown["biosample_term_name"] == 3
         assert breakdown["lab"] == 3
-        assert breakdown["numeric_features"] == 2
+        assert breakdown["numeric_features"] == 4
 
     def test_get_feature_breakdown_raises_if_not_fitted(self) -> None:
         """Test that get_feature_breakdown raises ValueError if not fitted."""
@@ -461,6 +465,6 @@ class TestFeatureCombinerCoverageEdgeCases:
         # Should return combined features without text portion
         assert result is not None
         # Result should be 1D vector with categorical + numeric dimensions
-        # 3 (assay) + 2 (organism) + 3 (biosample) + 3 (lab) + 2 (numeric) = 13
-        expected_dim = 3 + 2 + 3 + 3 + 2
+        # 3 (assay) + 2 (organism) + 3 (biosample) + 3 (lab) + 4 (numeric) = 15
+        expected_dim = 3 + 2 + 3 + 3 + 4
         assert len(result) == expected_dim

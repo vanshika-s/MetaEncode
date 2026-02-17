@@ -18,6 +18,7 @@ from src.ui.components.session import (
 )
 from src.ui.sidebar import render_sidebar
 from src.ui.tabs import render_search_tab, render_similar_tab, render_visualize_tab
+from scripts import precompute_embeddings
 
 # Page configuration - must be first Streamlit command
 st.set_page_config(
@@ -52,8 +53,7 @@ def render_main_content() -> None:
 
 
 def main() -> None:
-    """Main application entry point."""
-    # Initialize session state
+
     init_session_state()
 
     # Load cached data into session state (if available)

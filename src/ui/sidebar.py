@@ -8,7 +8,7 @@ with search execution delegated to handlers.py.
 import streamlit as st
 
 from src.ui.components.initializers import get_filter_manager
-from src.ui.handlers import handle_search_click
+from src.ui.handlers import handle_search_click, execute_search
 from src.ui.search_filters import FilterState
 from src.ui.vocabularies import (
     HISTONE_MODIFICATIONS,
@@ -25,6 +25,8 @@ from src.ui.vocabularies import (
     get_slim_display_name,
     get_targets,
 )
+
+
 
 # Module-level constants
 MAX_CATEGORY_OPTIONS = 20
@@ -269,15 +271,36 @@ def render_sidebar() -> dict:
     # --- Results Control ---
     st.sidebar.subheader("Results")
 
-    max_results = st.sidebar.slider(
-        "Max results to show",
-        min_value=5,
-        max_value=50,
-        value=st.session_state.filter_state.max_results,
-        step=5,
-        help="Applies to both search results and similar datasets",
-        key="filter_max_results",
-    )
+        
+    '''
+    def handle_search_click_example(filter_state: FilterState) -> None:
+        """Handle search button click event.
+
+        Updates session state with search results and displays status messages.
+
+        Args:
+            filter_state: Current filter state.
+            max_results: Maximum results to return.
+        """
+        filter_state.max_results = st.session_state.filter_max_results
+
+
+        if not filter_state.has_any_filter():
+            st.sidebar.warning("Please set at least one filter")
+            return
+
+        with st.spinner("YEAH TEST FUNCTION"):
+            try:
+                results, spell_msg = execute_search(filter_state, st.session_state.filter_max_results)
+                st.session_state.search_results = results
+                if spell_msg:
+                    st.sidebar.info(spell_msg)
+                st.sidebar.success(f"Found {len(results)} results")
+            except Exception as e:
+                st.sidebar.error(f"Search failed: {e}")'''
+
+  
+
 
     # --- More Options (Collapsible) ---
     with st.sidebar.expander("More Options"):
@@ -328,22 +351,45 @@ def render_sidebar() -> dict:
     st.sidebar.divider()
 
     # --- Build Filter State ---
-    filter_state = FilterState(
-        assay_type=assay_type if assay_type else None,
-        organism=organism if organism else None,
-        body_part=body_part if body_part else None,
-        biosample=biosample if biosample else None,
-        target=target if target else None,
-        age_stage=age_stage if age_stage else None,
-        lab=lab if lab else None,
-        min_replicates=int(min_replicates),
-        min_bio_replicates=int(min_bio_replicates),
-        min_tech_replicates=int(min_tech_replicates),
-        max_results=max_results,
-        description_search=description_search if description_search else None,
+    max_results = st.sidebar.slider(
+        "Max results to show",
+        min_value=5,
+        max_value=50,
+        value=st.session_state.filter_state.max_results,
+        step=5,
+        on_change = handle_search_click, 
+        args = (FilterState.from_dict({
+            "assay_type" : assay_type or None, 
+            "organism" : organism or None, 
+            "body_part" : body_part or None, 
+            "biosample" : biosample or None, 
+            "target" : target or None, 
+            "age_stage" : age_stage or None, 
+            "lab" : lab or None, 
+            "min_replicates" : min_replicates or 0, 
+            "max_results" : st.session_state.filter_state.max_results, 
+            "description_search" : description_search or None, 
+        }), ),
+        help="Applies to both search results and similar datasets",
+        key="filter_max_results"
     )
-
+    
+    
+    
     # Store filter state
+    filter_state = FilterState.from_dict({
+            "assay_type" : assay_type or 0, 
+            "organism" : organism or 0, 
+            "body_part" : body_part or 0, 
+            "biosample" : biosample or 0, 
+            "target" : target or 0, 
+            "age_stage" : age_stage or 0, 
+            "lab" : lab or 0, 
+            "min_replicates" : min_replicates or 0, 
+            "max_results" : st.session_state.filter_state.max_results, 
+            "description_search" : description_search or None, 
+        })
+    
     st.session_state.filter_state = filter_state
 
     # Build search query preview
@@ -359,7 +405,7 @@ def render_sidebar() -> dict:
         use_container_width=True,
         disabled=not filter_state.has_any_filter(),
     ):
-        handle_search_click(filter_state, max_results)
+        handle_search_click(filter_state)
 
     # Clear filters button
     if st.sidebar.button("Clear Filters", use_container_width=True):

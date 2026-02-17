@@ -49,12 +49,8 @@ def render_main_content() -> None:
 
 
 def main() -> None:
-    """Main application entry point."""
-    # Initialize session state
-    init_session_state()
 
-    #Creates and uploads metadata
-    precompute_embeddings.main()
+    init_session_state()
 
     # Load cached data into session state (if available)
     load_cached_data_into_session()

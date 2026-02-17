@@ -9,3 +9,6 @@ data/cache/selection_history_*.json
 .mypy_cache/
 .claude/
 .coverage
+data/
+data/cache/
+*.pkl

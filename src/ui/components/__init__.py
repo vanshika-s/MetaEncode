@@ -8,9 +8,14 @@ from src.ui.components.initializers import (
     get_feature_combiner,
     get_filter_manager,
     get_metadata_processor,
+    get_selection_history,
     load_cached_data,
 )
-from src.ui.components.session import init_session_state, load_cached_data_into_session
+from src.ui.components.session import (
+    init_session_state,
+    load_cached_data_into_session,
+    load_selection_history_into_session,
+)
 
 __all__ = [
     "get_cache_manager",
@@ -19,7 +24,9 @@ __all__ = [
     "get_metadata_processor",
     "get_feature_combiner",
     "get_filter_manager",
+    "get_selection_history",
     "load_cached_data",
     "init_session_state",
     "load_cached_data_into_session",
+    "load_selection_history_into_session",
 ]

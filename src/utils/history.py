@@ -27,7 +27,7 @@ class SelectionHistory:
     """
 
     DEFAULT_PATH = Path("data/cache/selection_history.json")
-    MAX_ENTRIES = 30
+    MAX_ENTRIES = 10
 
     def __init__(self, path: Optional[str] = None) -> None:
         """Initialize selection history manager.

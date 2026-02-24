@@ -27,9 +27,11 @@ def _save_to_history(dataset: dict[str, Any]) -> None:
 
 def render_search_tab() -> None:
     """Render the search and selection tab."""
+
     st.markdown(
         """
         <style>
+        /* Text sizes for search tab */
         .search-title {
             font-size: 1.9rem;
             font-weight: 650;
@@ -37,18 +39,10 @@ def render_search_tab() -> None:
         }
 
         .search-subtitle {
-            font-size: 1.35rem;
-            font-   weight: 600;
-            margin-top: 1.75rem;
+            font-size: 1.6rem;
+            font-weight: 550;
+            margin-top: 1.0rem;
             margin-bottom: 0.4rem;
-        }
-
-        .search-helper {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: #666;
-            margin-top: 1.2rem;
-            margin-bottom: 0.3rem;
         }
         
         </style>
@@ -65,9 +59,10 @@ def render_search_tab() -> None:
     # Get current filter state
     filter_state = st.session_state.filter_state
     max_results = filter_state.max_results
+    has_searched = st.session_state.get('has_searched', False)
 
     # Display search results if available
-    if st.session_state.search_results is not None:
+    if has_searched and st.session_state.search_results is not None:
         results_df = st.session_state.search_results
 
         if not results_df.empty:
@@ -130,7 +125,7 @@ def render_search_tab() -> None:
                     help="Click to open on ENCODE Portal",
                 ),
             }
-
+                
             # Let user select a row
             selection = st.dataframe(
                 display_df.head(max_results),
@@ -184,7 +179,10 @@ def render_search_tab() -> None:
     st.divider()
 
     # Manual accession input with recent selections
-    st.subheader("Or enter an accession directly")
+    st.markdown(
+        "<div class='search-subtitle'>Or enter an accession directly</div>",
+        unsafe_allow_html=True,
+    )
 
     # Recent selections dropdown (only shown when history exists)
     history_entries = st.session_state.get("selection_history", [])
@@ -217,8 +215,10 @@ def render_search_tab() -> None:
 
     accession = st.text_input(
         "ENCODE Accession",
+        value = st.session_state.get("accession_input", ""),
         placeholder="e.g., ENCSR000AKS",
         help="Enter an ENCODE experiment accession number",
+        key = "accession_input",
     )
 
     if st.button("Load Dataset"):

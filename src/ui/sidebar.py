@@ -34,6 +34,39 @@ MAX_CATEGORY_OPTIONS = 20
 MAX_BIOSAMPLE_OPTIONS = 50
 
 
+# Resets search filter widgets
+def reset_filters():
+    st.session_state.filter_state = FilterState()
+    
+    st.session_state["_last_history_selection"] = 0
+    st.session_state.classification_type = "organ"
+    
+    widget_keys = [
+        "filter_description", 
+        "filter_assay_type", 
+        "filter_organism", 
+        "filter_target", 
+        "filter_classification_type", 
+        "filter_body_part", 
+        "filter_biosample", 
+        "filter_age_stage", 
+        "filter_lab", 
+        "filter_min_replicates", 
+        "filter_min_bio_replicates", 
+        "filter_min_tech_replicates", 
+        "filter_max_results"
+    ]
+    
+    for key in widget_keys:
+        if key in st.session_state:
+            if "min_" in key:
+                st.session_state[key] = 0
+            elif "max_results" in key:
+                st.session_state[key] = 20
+            else:
+                st.session_state[key] = ""
+
+
 def render_sidebar() -> dict:
     """Render sidebar with search and filter controls.
 
@@ -52,10 +85,27 @@ def render_sidebar() -> dict:
     st.markdown("""
         <style>
 
-        /* SIDEBAR BACKGROUND */
+        /* Sidebar background */
         section[data-testid="stSidebar"] {
-            background-color: #dfe6da;
+            background-color: #afbc88;
         }
+        
+        /* Adjust padding in sidebar */
+        [data-testid="stSidebar"] [data-testid="stHeading"] h1{
+            padding-top: 0px;
+            margin-top: -5px; 
+            font-size: 1.8rem;
+        }
+        
+        [data-testid="stSidebarContent"] hr {
+            border-top: 1px solid #8e9a6a
+        }
+        
+        [data-testid="stSidebarContent"] div[role="slider"] {
+            background-color: #000000 !important;
+            border: 2px solid #000000;
+        }
+    
         
         </style>
         """, unsafe_allow_html=True)
@@ -67,12 +117,11 @@ def render_sidebar() -> dict:
     st.sidebar.subheader("Results")
 
     # --- Primary Filters (always visible) ---
-    
     def on_slider_change():
         if st.session_state.get("has_searched", False):
             st.session_state.refresh_results = True
     
-    # NEW --- Results Control (moved to top safely) ---
+    # Results Control 
     max_results = st.sidebar.slider(
         "Max results to show",
         min_value=5,
@@ -382,7 +431,6 @@ def render_sidebar() -> dict:
 
     st.sidebar.divider()
     
-    
     # Store filter state
     filter_state = FilterState.from_dict({
             "assay_type" : assay_type or 0, 
@@ -398,6 +446,8 @@ def render_sidebar() -> dict:
         })
     
     st.session_state.filter_state = filter_state
+
+    
     
     if (
         st.session_state.get("refresh_results", False)
@@ -407,12 +457,14 @@ def render_sidebar() -> dict:
         st.session_state.refresh_results = False
         handle_search_click(filter_state)
 
+    
     # Build search query preview
     search_query = filter_mgr.build_search_query(filter_state)
 
     if search_query:
         st.sidebar.caption(f"Search: {search_query}")
 
+    
     # --- Search Button ---
     if st.sidebar.button(
         "Search ENCODE",
@@ -424,7 +476,9 @@ def render_sidebar() -> dict:
         st.session_state.has_searched = True
 
     # Clear filters button
-    if st.sidebar.button("Clear Filters", use_container_width=True):
+    if st.sidebar.button("Clear Filters", 
+                         use_container_width=True,
+                         on_click=reset_filters):
         st.session_state.filter_state = FilterState()
         st.rerun()
 

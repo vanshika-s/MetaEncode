@@ -185,7 +185,44 @@ def generate_similar_only_visualization(method: str, color_by: str) -> None:
 
 def render_visualize_tab() -> None:
     """Render the visualization tab."""
-    st.header("Dataset Visualization")
+    
+    st.markdown(
+        """
+        <style>
+        /* Text sizes for search tab */
+        .subheader {
+            font-size: 1.9rem;
+            font-weight: 650;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            font-size: 1.4rem;
+            font-weight: 550;
+            margin-bottom: 0.4rem;
+        }
+        
+        /* Options panel */
+        [data-testid="stColumn"]:has(.options-container-marker) {
+            background-color: #afbc88 !important;
+            padding: 25px !important;
+            border-radius: 15px !important;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.05) !important;
+        }
+        
+        [data-testid="stColumn"]:has(.options-container-marker) [data-baseweb="select"] > div {
+            background-color: #ffffff !important;
+            border-radius: 8px !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    st.markdown(
+        "<div class='subheader'>Dataset Visualization</div>",
+        unsafe_allow_html=True,
+    )
 
     if st.session_state.metadata_df is None or st.session_state.embeddings is None:
         st.info(
@@ -196,7 +233,11 @@ def render_visualize_tab() -> None:
     col1, col2 = st.columns([3, 1])
 
     with col2:
-        st.subheader("Options")
+        st.markdown('<div class="options-container-marker"></div>', unsafe_allow_html=True)
+        st.markdown(
+            "<div class='subtitle'>Options</div>",
+            unsafe_allow_html=True,
+        )
 
         # View mode selector
         similar_available = st.session_state.similar_datasets is not None
@@ -213,7 +254,7 @@ def render_visualize_tab() -> None:
 
         # Warn if similar-only selected but no similar datasets
         if view_mode == "similar_only" and not similar_available:
-            st.warning("Run a similarity search first to use this view.")
+            st.error("Search for a dataset and run a similarity search first to use this view.")
 
         reduction_method = st.selectbox(
             "Reduction Method",

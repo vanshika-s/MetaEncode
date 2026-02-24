@@ -27,14 +27,22 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Margins
+
 st.markdown("""
     <style>
+        /* Margins */
         .block-container {
             padding-top: 1rem;
             padding-bottom: 2rem;
             padding-left: 4rem;
             padding-right: 4rem;
+        }
+        
+        /* Title */
+        .title {
+            font-size: 3.0rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -42,24 +50,40 @@ st.markdown("""
 
 def render_main_content() -> None:
     """Render main content area with cards"""
-    st.title("MetaENCODE")
     st.markdown(
-        "**Discover related ENCODE datasets through metadata-driven similarity scoring**"
+        "<div class='title'>MetaENCODE</div>",
+        unsafe_allow_html=True,
     )
+    st.markdown("**Discover related ENCODE datasets and visualize dataset similarity.**")
 
-    # 1. Scoped CSS: Only affects buttons inside the 'nav-container'
+    # Styling for buttons 
     st.markdown("""
         <style>
+
+        [data-testid="stVerticalBlock"] > div:has(div.card-container) {
+            margin-top: -10px !important;
+        }
+        
         /* Base Card */
         [data-testid="stVerticalBlock"] > div:has(div.card-container) button {
-            height: 80px;
-            border-radius: 12px;
+            height: 4.3rem;
+            border-radius: 8px;
             border: 2px solid #afbc88;
             background-color: #ffffff;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: all 0.2s ease-in-out;
-            font-weight: 600;
             color: #31333F;
+        }
+        
+        hr {
+            margin-top: 3px !important;
+            margin-bottom: 5px !important;
+        }
+        
+        /* Button Text */
+        [data-testid="stVerticalBlock"] > div:has(div.card-container) button p {
+            font-size: 1.4rem;
+            font-weight: 400;
         }
 
         /* Hover Effect */
@@ -83,21 +107,21 @@ def render_main_content() -> None:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🔍 Search & Select", use_container_width=True, key="btn_search"):
+            if st.button("Search & Select", use_container_width=True, key="btn_search"):
                 st.session_state.active_tab = "Search"
                 st.rerun()
             if st.session_state.active_tab == "Search":
                 st.markdown("<div style='border-bottom: 5px solid #618B4A; margin-top: -15px;'></div>", unsafe_allow_html=True)
 
         with col2:
-            if st.button("🧬 Similar Datasets", use_container_width=True, key="btn_similar"):
+            if st.button("Similar Datasets", use_container_width=True, key="btn_similar"):
                 st.session_state.active_tab = "Similar"
                 st.rerun()
             if st.session_state.active_tab == "Similar":
                 st.markdown("<div style='border-bottom: 5px solid #618B4A; margin-top: -15px;'></div>", unsafe_allow_html=True)
 
         with col3:
-            if st.button("📊 Visualize", use_container_width=True, key="btn_visualize"):
+            if st.button("Visualize", use_container_width=True, key="btn_visualize"):
                 st.session_state.active_tab = "Visualize"
                 st.rerun()
             if st.session_state.active_tab == "Visualize":
@@ -107,11 +131,14 @@ def render_main_content() -> None:
 
     # Display content
     if st.session_state.active_tab == "Search":
-        render_search_tab()
+       render_search_tab()
     elif st.session_state.active_tab == "Similar":
-        render_similar_tab()
+       render_similar_tab()
     elif st.session_state.active_tab == "Visualize":
-        render_visualize_tab()
+       render_visualize_tab()
+
+
+
 
 def main() -> None:
     """Main application entry point."""

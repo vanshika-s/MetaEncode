@@ -3,6 +3,7 @@
 
 import pandas as pd
 import streamlit as st
+import time
 
 from src.ui.components.initializers import get_embedding_generator
 from src.ui.formatters import (
@@ -15,10 +16,31 @@ from src.ui.formatters import (
 
 def render_similar_tab() -> None:
     """Render the similar datasets tab."""
-    st.header("Similar Datasets")
+    
+    st.markdown(
+        """
+        <style>
+        /* Text sizes for search tab */
+        .sub-header {
+            font-size: 1.9rem;
+            font-weight: 650;
+            margin-bottom: 0.25rem;
+        }
+        
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    st.markdown(
+        "<div class='sub-header'>Similar Datasets</div>",
+        unsafe_allow_html=True,
+    )
 
     if st.session_state.selected_dataset is None:
         st.info("Select a dataset first to find similar experiments.")
+        st.session_state.similar_datasets = None 
+        st.session_state.last_computed_accession = None
         return
 
     # Check if we have loaded data
@@ -27,69 +49,39 @@ def render_similar_tab() -> None:
             "No data loaded. Please ensure the precomputed cache files exist in data/cache/."
         )
         return
-
+    
     selected = st.session_state.selected_dataset
     accession = selected.get("accession", "Unknown")
-    accession_link = format_accession_as_link(accession)
-    st.markdown(f"Finding datasets similar to: **{accession_link}**")
-
-    # Get filter state
-    filter_state = st.session_state.filter_state
-    top_n = filter_state.max_results
-
-    if st.button("Find Similar Datasets", type="primary"):
-        with st.spinner("Computing similarities..."):
+    
+    last_acc = st.session_state.get("last_computed_accession")
+    if accession != last_acc:
+        with st.spinner(f"Computing datasets similar to {accession}..."):
             try:
+                time.sleep(1.5)
+                
                 embedder = get_embedding_generator()
                 similarity_engine = st.session_state.similarity_engine
                 feature_combiner = st.session_state.feature_combiner
 
                 if similarity_engine is None:
-                    st.error(
-                        "Similarity engine not initialized. Please load data first."
-                    )
+                    st.error("Similarity engine not initialized.")
                     return
 
-                # Generate text embedding for selected dataset
+                # --- Core Computation Logic ---
                 text = f"{selected.get('description', '')} {selected.get('title', '')}"
                 text_embedding = embedder.encode_single(text)
 
-                # Generate combined query vector (if feature combiner is available)
                 if feature_combiner is not None and feature_combiner.is_fitted:
-                    query_vector = feature_combiner.transform_single(
-                        selected, text_embedding
-                    )
+                    query_vector = feature_combiner.transform_single(selected, text_embedding)
                 else:
-                    # Fallback to text-only similarity
                     query_vector = text_embedding
 
-                # Ensure the query vector is compatible with the similarity engine
-                engine_dim = getattr(similarity_engine, "vector_dim", None)
-                if engine_dim is None:
-                    engine_dim = getattr(similarity_engine, "embedding_dim", None)
-
-                if engine_dim is not None:
-                    # Try to determine the dimensionality of the query vector
-                    try:
-                        query_dim = len(query_vector)
-                    except TypeError:
-                        query_dim = getattr(getattr(query_vector, "shape", None), "__getitem__", lambda _i: None)(0)
-
-                    if query_dim is not None and query_dim != engine_dim:
-                        st.error(
-                            "The similarity engine was initialized with embeddings of a "
-                            f"different dimensionality ({engine_dim}) than the current "
-                            f"query vector ({query_dim}). Please reload data so that the "
-                            "similarity engine and query embeddings are consistent."
-                        )
-                        return
-                # Find more similar datasets than requested (for post-filtering)
+                # Find similar
+                top_n = st.session_state.filter_state.max_results
                 fetch_n = max(top_n * 3, 30)
-                similar_df = similarity_engine.find_similar(
-                    query_vector, n=fetch_n, exclude_self=True
-                )
+                similar_df = similarity_engine.find_similar(query_vector, n=fetch_n, exclude_self=True)
 
-                # Get metadata for similar datasets
+                # Get metadata
                 metadata_df = st.session_state.metadata_df
                 results = []
                 for _, row in similar_df.iterrows():
@@ -99,17 +91,26 @@ def render_similar_tab() -> None:
                         meta["similarity_score"] = row["similarity_score"]
                         results.append(meta)
 
+                # 4. Save to session state to prevent re-computation on every click
                 st.session_state.similar_datasets = pd.DataFrame(results)
+                st.session_state.last_computed_accession = accession
 
             except Exception as e:
                 st.error(f"Error computing similarities: {e}")
+                return
+    
+    accession_link = format_accession_as_link(accession)
+    st.markdown(f"Finding datasets similar to: **{accession_link}**")
+
+    # Get filter state
+    filter_state = st.session_state.filter_state
+    top_n = filter_state.max_results
 
     # Display similar datasets
     if st.session_state.similar_datasets is not None:
         similar = st.session_state.similar_datasets
 
         if not similar.empty:
-            st.subheader("Most Similar Datasets")
 
             # Limit display to max_results; similarity ranking already applied (no additional filters)
             display_similar = similar.head(top_n)
